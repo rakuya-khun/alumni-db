@@ -10,22 +10,53 @@
 
 | Shape | Meaning |
 |-------|---------|
-| Rounded rectangle / Oval | Start / End (Terminal) |
-| Rectangle (green border) | Process |
-| Diamond (purple border) | Decision |
-| Rectangle (cyan border) | Input / Output |
-| Rectangle (amber border) | Action / Sub-process |
-| Rectangle (red border) | Error State |
+| Rounded rectangle / Stadium | Start / End (Terminal) |
+| Rectangle | Process |
+| Diamond / Rhombus | Decision |
+| Parallelogram | Input / Output |
+| Hexagon | Sub-process / Action |
 | Green arrow | YES path |
 | Red arrow | NO / Error path |
 | Blue dashed arrow | Return / loop-back |
-| Amber arrow | Warning / notification path |
 
 ---
 
 ## 1. System Overview
 
 **Purpose:** High-level map of the complete application lifecycle — from launch through login, role-based access, 8 system modules, and exit.
+
+```mermaid
+flowchart TD
+    A([🚀 Launch Application]) --> B[Display Login Screen]
+    B --> C["Enter Username & Password"]
+    C --> D{Valid Login?}
+    D -- NO --> E[Show Error Message]
+    E --> C
+    D -- YES --> F{Identify User Role}
+    F -- Dean --> G["All Programs (CE · CpE · EE)"]
+    F -- Chairperson --> H["Own Program Only"]
+    G --> I[Load Filtered Dashboard]
+    H --> I
+    I --> J{Select Module}
+    J --> K["1. Analytic Dashboard"]
+    J --> L["2. Alumni Directory"]
+    J --> M["3. Alumni Profiling"]
+    J --> N["4. Reports & Export"]
+    J --> O["5. Data Sync"]
+    J --> P["6. Sending Emails"]
+    J --> Q["7. Settings"]
+    J --> R["8. About"]
+    K & L & M & N & O & P & Q & R --> S{Exit App?}
+    S -- NO --> J
+    S -- YES --> T([Application Closed])
+
+    style A fill:#10b981,color:#fff
+    style T fill:#ef4444,color:#fff
+    style D fill:#8b5cf6,color:#fff
+    style F fill:#8b5cf6,color:#fff
+    style S fill:#8b5cf6,color:#fff
+    style I fill:#06b6d4,color:#fff
+```
 
 ### Flow Description
 
@@ -39,15 +70,7 @@
    - **Dean** → Access all programs (CE · CpE · EE), full data scope.
    - **Chairperson** → Access own program data only (CE, CpE, or EE).
 6. Both paths merge → Load the **Dashboard (Filtered View)** according to role scope.
-7. **Select Module** — User navigates to one of 8 modules:
-   1. Analytic Dashboard
-   2. Alumni Directory
-   3. Alumni Profiling
-   4. Reports & Export
-   5. Data Sync
-   6. Sending Emails
-   7. Settings
-   8. About
+7. **Select Module** — User navigates to one of 8 modules.
 8. After completing work in any module, the user returns to the Dashboard.
 9. **Exit App?**
    - **NO** → Loop back to module selection.
@@ -56,42 +79,51 @@
 ### Additional Details
 
 - **Login Gate:** The v1 "settings gate" is replaced by a login screen. Settings are no longer the entry point — authentication is.
-- **Hub-and-Spoke Architecture:** The Dashboard remains the central hub. Every module returns to it. There is no direct module-to-module navigation.
-- **Role-Based Data Scoping:** The role determined at login persists for the entire session and filters all data globally — dashboard stats, alumni lists, export results, and email recipients are all scoped to the user's accessible programs.
-- **Exit Control:** The exit decision creates a continuous usage loop until the user explicitly closes the application.
+- **Hub-and-Spoke Architecture:** The Dashboard remains the central hub. Every module returns to it.
+- **Role-Based Data Scoping:** The role determined at login persists for the entire session and filters all data globally.
 
 ---
 
 ## 2. Login & Role-Based Access
 
-**Purpose:** Full authentication flow — credential input, validation against accounts stored in the Google Sheets "Accounts" tab (with encrypted offline fallback), attempt lockout, role detection, program data filtering, and session start.
+**Purpose:** Full authentication flow — credential input, validation against accounts stored in the Google Sheets "Accounts" tab (with encrypted offline fallback), attempt lockout, role detection, and session start.
 
-### Flow Description
+```mermaid
+flowchart TD
+    A([🚀 Launch Application]) --> B[Display Login Screen]
+    B --> C["Enter Username & Password"]
+    C --> D{Internet Available?}
+    D -- YES --> E["Authenticate via Sheets 'Accounts' Tab"]
+    D -- NO --> F["Authenticate via Encrypted Local Cache"]
+    E --> G{Valid Credentials?}
+    F --> G
+    G -- YES --> H{Identify Role}
+    G -- NO --> I{Attempts ≥ 3?}
+    I -- YES --> J["🔒 Account Locked (5 min)"]
+    J --> B
+    I -- NO --> K["Show Error: Invalid Credentials"]
+    K --> C
+    H -- Dean --> L["All Programs (CE · CpE · EE)"]
+    H -- CE Chair --> M[CE Data Only]
+    H -- CpE Chair --> N[CpE Data Only]
+    H -- EE Chair --> O[EE Data Only]
+    L & M & N & O --> P["Encrypt & Cache Account Locally"]
+    P --> Q[Load Filtered Dashboard]
+    Q --> R[Start User Session]
+    R --> S([✅ Access All System Modules])
 
-1. User launches the application.
-2. Display the **Login Screen**.
-3. Enter credentials — Username & Password.
-4. **Authenticate User** — The system checks credentials against:
-   - **Primary:** The "Accounts" tab in the connected Google Sheets spreadsheet (if online and sheet is reachable).
-   - **Fallback:** Encrypted local account cache (if offline or Sheets is unreachable). The local cache is populated the first time a user successfully logs in online.
-5. **Valid Credentials?**
-   - **YES** → Proceed to role identification.
-   - **NO** → Check login attempt count.
-6. **Attempts ≥ 3?**
-   - **YES** → **Account Locked** for 5 minutes. User must wait before retrying.
-   - **NO** → Show error ("Invalid credentials"). Loop back to credential input for retry.
-7. **Identify User Role?** — 4 branches based on the `role` column in the Accounts sheet:
-   - **Dean** → All Programs access (CE · CpE · EE) — full data scope, account management.
-   - **CE Chair** → CE Data Only — restricted to Civil Engineering records.
-   - **CpE Chair** → CpE Data Only — restricted to Computer Engineering records.
-   - **EE Chair** → EE Data Only — restricted to Electrical Engineering records.
-8. All role branches merge → **Load Filtered Dashboard** (scoped to the user's accessible programs).
-9. **Start User Session** — Session state stored locally with role, accessible programs, and timestamps.
-10. → **Access All System Modules** (terminal — hand-off to module navigation).
+    style A fill:#10b981,color:#fff
+    style S fill:#10b981,color:#fff
+    style J fill:#ef4444,color:#fff
+    style G fill:#8b5cf6,color:#fff
+    style H fill:#8b5cf6,color:#fff
+    style I fill:#8b5cf6,color:#fff
+    style D fill:#8b5cf6,color:#fff
+```
 
 ### Accounts Sheet Structure
 
-Accounts are stored in a dedicated **"Accounts" tab** within the same Google Sheets spreadsheet used for alumni data. The sheet has the following columns:
+Accounts are stored in a dedicated **"Accounts" tab** within the same Google Sheets spreadsheet:
 
 | Column | Description |
 |--------|-------------|
@@ -103,107 +135,121 @@ Accounts are stored in a dedicated **"Accounts" tab** within the same Google She
 | `created_at` | ISO 8601 timestamp |
 | `last_login` | ISO 8601 timestamp (updated on successful login) |
 
-> **First-time setup:** The very first account (typically Dean) is **manually added** to the Accounts sheet tab for security. There is no self-registration. The Dean can then add additional accounts via the system or directly on the spreadsheet.
-
 ### Offline Fallback
 
-- On the **first successful online login**, the system encrypts and caches the user's account record locally (using `electron/utils/crypto.ts`).
-- On subsequent launches, if the internet is unavailable or the Sheets API is unreachable, the system authenticates against this local encrypted cache.
-- The local cache stores: username, hashed password, role, full_name, is_active status.
-- Cache is refreshed (re-encrypted with latest data) on every successful online login.
+- On the **first successful online login**, the system encrypts and caches the user's account record locally.
+- If the internet is unavailable, the system authenticates against this local encrypted cache.
+- Cache is refreshed on every successful online login.
 
 ### Additional Details
 
-- **No Self-Registration:** All accounts are created either manually in the spreadsheet or by the Dean via the Accounts Management module in the system.
-- **Lockout Policy:** 3 consecutive failed attempts → 5-minute lockout. The counter resets on successful login.
-- **Session Persistence:** Role and program scope are stored in the Zustand `auth.store` and persist for the session duration. Closing the app ends the session.
-- **Active Flag:** The `is_active` column allows the Dean to deactivate accounts without deleting them. Deactivated accounts cannot log in.
+- **No Self-Registration:** First account is manually added to the Sheets tab.
+- **Lockout Policy:** 3 consecutive failures → 5-minute lockout.
+- **Session:** Stored in Zustand `auth.store`, ends on app close.
 
 ---
 
 ## 3. Analytic Dashboard
 
-**Purpose:** Role-filtered data loading, summary stat cards, percentage metrics, and frequency/weighted mean tables for survey responses.
+**Purpose:** Role-filtered data loading, summary stat cards, percentage metrics, and frequency/weighted mean tables.
 
-### Flow Description
+```mermaid
+flowchart TD
+    A([📊 Enter Dashboard]) --> B["Apply Role-Based Filter"]
+    B --> C{Alumni Data Available?}
+    C -- NO --> D["Show Empty State"]
+    C -- YES --> E["Load Summary Cards"]
+    E --> F["Total Responses"]
+    E --> G["CE / CpE / EE Respondents"]
+    F & G --> H["Compute % Statistics"]
+    H --> I["% Board Passers"]
+    H --> J["% Employed Alumni"]
+    H --> K["% Field-Related Jobs"]
+    H --> L["% Supervisory Roles"]
+    I & J & K & L --> M["Load Frequency & Weighted Mean Tables"]
+    M --> N["Curriculum Relevance"]
+    M --> O["Competencies (9 items)"]
+    M --> P["Employment Status"]
+    M --> Q["Industry Sector"]
+    M --> R["Other Survey Tables"]
+    N & O & P & Q & R --> S[Render Full Dashboard]
+    S --> T["Display Charts & Tables"]
+    T --> U([✅ Dashboard Displayed])
 
-1. Enter the **Analytic Dashboard Page**.
-2. **Apply Role-Based Filter** — Automatically scope data to the user's accessible programs (Dean = all; Chairpersons = own program).
-3. **Alumni Data Available?**
-   - **NO** → Show Empty State (friendly empty message).
-   - **YES** → Proceed.
-4. **Load Summary Cards:**
-   - Total Responses
-   - CE Respondents
-   - CpE Respondents
-   - EE Respondents
-5. **Compute % Statistics:**
-   - % Board Passers
-   - % Employed Alumni
-   - % Field-Related Jobs
-   - % Supervisory / Managerial Roles
-6. **Load Frequency & Weighted Mean Tables** — Data tables covering: Curriculum Relevance, Competencies, Employment Status, Specialization, Place of Work, Industry Sector, First Job, Challenges, and more.
-7. **Render Full Dashboard** — Compose all cards, charts, and tables into the complete view.
-8. **Display Charts & Tables** — Output to user.
-9. → **Dashboard Displayed** (terminal).
+    style A fill:#06b6d4,color:#fff
+    style U fill:#10b981,color:#fff
+    style C fill:#8b5cf6,color:#fff
+    style B fill:#f59e0b,color:#fff
+```
 
 ### Additional Details
 
-- **Role-Based Filter Applied First:** A Chairperson for CE will only see CE-specific statistics, counts, and tables. The Dean sees aggregated data across all three programs.
-- **Empty State Guard:** If zero alumni records exist for the user's scope, the dashboard gracefully shows an empty state rather than broken charts.
-- **Stat Cards (KPIs):** Total Responses, per-program respondent counts, % Board Passers, % Employed, % Field-Related, % Supervisory.
-- **Survey Tables:** Each table shows frequency distribution and weighted mean (for Likert-scale data). Computed via SQL aggregation in `analytics.repository.ts`.
+- **Role-Based Filter Applied First:** A Chairperson sees only their own program's statistics.
+- **Stat Cards (KPIs):** Total Responses, per-program counts, % Board Passers, % Employed, % Field-Related, % Supervisory.
+- **Survey Tables:** Frequency distribution and weighted mean (for Likert-scale data).
 
 ---
 
 ## 4. Alumni Directory
 
-**Purpose:** Full CRUD operations with search/filter, GForm-based add, edit, delete, profile view — all with role-based filtering and optional sync queue.
+**Purpose:** Full CRUD operations with search/filter, GForm-based add, edit, delete, profile view — all role-filtered.
 
-### Flow Description
+```mermaid
+flowchart TD
+    A([📋 Enter Alumni Directory]) --> B["Apply Role-Based Filter"]
+    B --> C[Display Filtered Alumni List]
+    C --> D{Select Action}
 
-1. Enter the **Alumni Directory Page**.
-2. **Apply Role-Based Filter** — Auto-scope alumni list to user's accessible programs.
-3. **Display Filtered Alumni List** — Table of alumni records within scope.
-4. **Select Action** — 5 action branches:
+    D -- Search/Filter --> E[Select Filter Options]
+    E --> F["Apply Filter (Program, Year, Location, etc.)"]
+    F --> G[Show Filtered Results]
+    G --> D
 
-**Search/Filter Branch:**
-1. Select filter options: Program, Year, Location, Employment Status, etc.
-2. Apply filter.
-3. Show filtered results.
+    D -- Add --> H["Open Add Form (GForm Fields)"]
+    H --> I["Fill All Required Fields"]
+    I --> J{Valid?}
+    J -- NO --> I
+    J -- YES --> K["Save to Local DB (Pending Sync)"]
+    K --> L
 
-**Add (GForm) Branch:**
-1. Open Google Form (or embedded form equivalent).
-2. Fill all required GForm fields (all questionnaire sections).
-3. **Valid?** — If NO, loop back to fill fields. If YES:
-4. Save to local DB (marks as "Pending Sync").
+    D -- Edit --> M[Load Selected Alumni Record]
+    M --> N["Modify Fields"]
+    N --> O{Valid?}
+    O -- NO --> N
+    O -- YES --> P["Create History Snapshot"]
+    P --> Q["Update DB (Pending Sync)"]
+    Q --> L
 
-**Edit Branch:**
-1. Load selected alumni record.
-2. Modify desired fields.
-3. **Valid?** — If NO, loop back to modify. If YES:
-4. Create history snapshot → Update DB (marks as "Pending Sync").
+    D -- Delete --> R{Confirm Delete?}
+    R -- NO --> D
+    R -- YES --> S[Remove Record from DB]
+    S --> L
 
-**Delete Branch:**
-1. **Confirm Delete?** — If NO, return to action selection. If YES:
-2. Remove record from database. Cascades to `alumni_history`.
+    D -- View Profile --> T[Open Alumni Profile Page]
+    T --> U["Show Full Profile + Timeline"]
+    U --> L
 
-**View Profile Branch:**
-1. Open Alumni Profile page.
-2. Show full profile data + timeline (links to Profiling module).
+    L{Mark for Sync?}
+    L -- YES --> V[Queue for Sync]
+    L -- NO --> W[Skip Sync Queue]
+    V & W --> X([🔄 Return to Directory])
 
-5. All branches merge → **Mark for Sync?**
-   - **YES** → Queue record for sync.
-   - **NO** → Skip sync queue.
-6. → **Return to Directory** (terminal).
+    style A fill:#06b6d4,color:#fff
+    style X fill:#10b981,color:#fff
+    style D fill:#8b5cf6,color:#fff
+    style J fill:#8b5cf6,color:#fff
+    style O fill:#8b5cf6,color:#fff
+    style R fill:#8b5cf6,color:#fff
+    style L fill:#8b5cf6,color:#fff
+    style B fill:#f59e0b,color:#fff
+```
 
 ### Additional Details
 
-- **GForm Integration:** The "Add" action opens or links to the configured Google Form. Form responses flow into Google Sheets and are synced to the local DB via the Data Sync module.
-- **Validation Loop:** Both Add and Edit have validation loops — invalid input returns to the form with error messages.
-- **Pending Sync:** All created/edited records are marked `sync_status = 'pending'` and queued for upload during the next sync.
-- **Delete Safety:** Deletion requires explicit confirmation. Canceling returns to the action selection.
-- **View Profile:** Clicking "View Profile" on a record navigates to the Alumni Profiling module for that individual.
+- **GForm Integration:** The "Add" action links to the configured Google Form.
+- **Validation Loop:** Both Add and Edit have validation loops.
+- **Pending Sync:** All created/edited records are marked `sync_status = 'pending'`.
+- **Delete Safety:** Requires explicit confirmation dialog.
 
 ---
 
@@ -211,271 +257,300 @@ Accounts are stored in a dedicated **"Accounts" tab** within the same Google She
 
 **Purpose:** Individual alumni profile view — complete response history, latest update highlights, and chronological timeline.
 
-### Flow Description
+```mermaid
+flowchart TD
+    A([👤 Enter Alumni Profiling]) --> B["Load Alumni Records (Role-Filtered)"]
+    B --> C{Records Found?}
+    C -- NO --> D["Show 'No Records' Message"]
+    C -- YES --> E["Select Alumni Record"]
+    E --> F[Load Full Profile Data]
+    F --> G{Select Display View}
 
-1. Enter the **Alumni Profiling Page**.
-2. **Load Alumni Records** — Fetches the list of alumni within the user's role scope.
-3. **Records Found?**
-   - **NO** → Show "No Records" message.
-   - **YES** → Proceed.
-4. **Select Alumni Record** — User picks an individual alumnus.
-5. **Load Full Profile Data** — Retrieve complete record + all history snapshots.
-6. **Select Display View** — 3 branches:
+    G -- Full History --> H["Display All Submissions & Edits"]
+    H --> I["Show Every Field from Every Snapshot"]
 
-**Full Response History:**
-- Displays all form submissions and edits chronologically.
-- Shows every field from every recorded update.
+    G -- Latest Updates --> J["Display Recent Changes Only"]
+    J --> K["Highlight Modified Fields (Diff)"]
 
-**Latest Updates (Highlighted):**
-- Shows only the most recent changes.
-- Highlights recently modified fields with visual diff indicators.
+    G -- Timeline --> L["Display Visual Timeline"]
+    L --> M["Each Entry: Date, Changed Count, Summary"]
 
-**Chronological Timeline:**
-- A visual timeline of all updates.
-- Each entry shows date, changed field count, and summary.
+    I & K & M --> N([✅ Profile Displayed])
 
-7. All branches merge → **Profile Displayed**.
-8. → **Return to Directory / Dashboard** (terminal).
+    style A fill:#06b6d4,color:#fff
+    style N fill:#10b981,color:#fff
+    style C fill:#8b5cf6,color:#fff
+    style G fill:#8b5cf6,color:#fff
+```
 
 ### Additional Details
 
-- **History Snapshots:** Every time an alumni record is edited, a JSON snapshot of the full record is stored in `alumni_history`. The profiling page reads these snapshots.
-- **Diff Highlighting:** The Latest Updates view visually highlights which fields changed compared to the previous version.
-- **Timeline Navigation:** Users can click any timeline entry to expand and view the full snapshot at that point in time.
+- **History Snapshots:** Every edit creates a JSON snapshot in `alumni_history`.
+- **Diff Highlighting:** Latest Updates view shows visual old → new diff indicators.
+- **Timeline Navigation:** Click any timeline entry to expand full snapshot.
 
 ---
 
 ## 6. Reports & Export
 
-**Purpose:** Export alumni data as PDF, DOCX, XLSX; apply filtered print by program/year/specialization/area; and preview before printing.
+**Purpose:** Export alumni data as PDF, DOCX, XLSX; filtered print; and print preview — all role-filtered.
 
-### Flow Description
+```mermaid
+flowchart TD
+    A([📄 Enter Reports & Export]) --> B["Apply Role-Based Filter"]
+    B --> C{Alumni Data Available?}
+    C -- NO --> D["Show Empty State"]
+    C -- YES --> E{Select Export Type}
 
-1. Enter the **Reports & Export Page**.
-2. **Apply Role-Based Filter** — Auto-scope export data to user's accessible programs.
-3. **Alumni Data Available?**
-   - **NO** → Show Empty State.
-   - **YES** → Proceed.
-4. **Select Export Type** — 5 branches:
+    E -- PDF --> F["Generate PDF (Stats + Directory)"]
+    F --> G["Download .pdf"]
 
-**PDF Branch:**
-1. Generate PDF (stats + directory listing).
-2. Include program distribution and full alumni table.
-3. → Download `.pdf` file.
+    E -- DOCX --> H["Generate Styled Word Document"]
+    H --> I["Download .docx"]
 
-**DOCX Branch:**
-1. Generate styled Word document.
-2. Include summary + data tables.
-3. → Download `.docx` file.
+    E -- XLSX --> J["Export as Excel Workbook"]
+    J --> K["Download .xlsx (Multi-Tab)"]
 
-**XLSX Branch:**
-1. Export as Excel workbook.
-2. Include formatted sheet + filters tab + summary tab.
-3. → Download `.xlsx` file.
+    E -- Filtered Print --> L["Select Filter Criteria"]
+    L --> M["Apply Filter & Generate"]
+    M --> N["Download Filtered File"]
 
-**Filtered Print Branch:**
-1. Select filter criteria: Program, Year, Specialization, Area/Location.
-2. Apply filter to narrow data.
-3. → Download filtered file.
+    E -- Preview/Print --> O["Open Print Dialog"]
+    O --> P["Render Print-Optimized View"]
+    P --> Q["Print or Cancel"]
 
-**Preview/Print Branch:**
-1. Open print dialog.
-2. Render print-optimized summary view.
-3. → Print or Cancel.
+    G & I & K & N & Q --> R{Export Successful?}
+    R -- YES --> S([✅ Return to Reports])
+    R -- NO --> T["Show Error + Retry"]
+    T --> E
 
-5. All branches merge → **Export Successful?**
-   - **YES** → Return to Reports page.
-   - **NO** → Show Error with Retry option. Loop back to export.
+    style A fill:#06b6d4,color:#fff
+    style S fill:#10b981,color:#fff
+    style C fill:#8b5cf6,color:#fff
+    style E fill:#8b5cf6,color:#fff
+    style R fill:#8b5cf6,color:#fff
+    style B fill:#f59e0b,color:#fff
+```
 
 ### Additional Details
 
-- **Role-Based Filter Applied First:** A CE Chairperson can only export CE alumni data. The Dean can export all programs.
-- **Empty State Guard:** If no records exist within the user's scope, the system shows a friendly empty state rather than generating blank files.
-- **Excel Multi-Tab:** The `.xlsx` export includes: Main Data sheet, Filters Applied tab, and Summary Statistics tab.
-- **Print Preview:** Renders a `@media print` optimized view using `print.css` styles.
+- **Role-Based Filter Applied First:** Chairpersons can only export their own program's data.
+- **Excel Multi-Tab:** Data sheet, Filters Applied tab, Summary Statistics tab.
+- **Print Preview:** `@media print` optimized view.
 
 ---
 
 ## 7. Data Synchronization
 
-**Purpose:** Internet check, unsaved change notification, 4 sync actions (Pull, Push, Full Sync, Auto-Sync Timer), pending changes review, conflict resolution, and sync execution.
+**Purpose:** Internet check, unsaved change notification, 4 sync modes, pending changes, conflict resolution.
 
-### Flow Description
+```mermaid
+flowchart TD
+    A([🔄 Enter Data Sync]) --> B{Internet Available?}
+    B -- NO --> C["Show Offline Indicator (Buttons Disabled)"]
+    B -- YES --> D{Unsaved Changes?}
+    D -- YES --> E["⚠️ Show Notification: 'N Unsaved Changes'"]
+    E --> F
+    D -- NO --> F{Select Sync Action}
 
-1. Enter the **Data Sync Page**.
-2. **Internet Available?**
-   - **NO** → Show Offline indicator (sync buttons disabled).
-   - **YES** → Proceed.
-3. **Unsaved Changes?**
-   - **YES** → Show notification ("You have N unsaved changes"). Continue.
-   - **NO / Continue** → Proceed to sync action selection.
-4. **Select Sync Action** — 4 branches:
+    F -- Pull --> G["Pull from Sheets"]
+    G --> H["Fetch Remote Data → Merge to Local"]
 
-**Pull Branch:**
-1. Pull from Sheets — Download remote data.
-2. Fetch Remote Data → merge into local DB.
+    F -- Push --> I["Push to Sheets"]
+    I --> J["Upload Local Data to Sheets"]
 
-**Push Branch:**
-1. Push to Sheets — Upload local changes.
-2. Upload Local Data to Google Sheets.
+    F -- Full Sync --> K["Full Sync (Pull + Push)"]
+    K --> L["Bidirectional Merge"]
 
-**Full Sync Branch:**
-1. Full Sync — Bidirectional merge.
-2. Pull first, then push, with conflict detection.
+    F -- Auto-Sync --> M["Auto-Sync Timer"]
+    M --> N["Configure Interval (secs/mins)"]
+    N --> O([⏱️ Timer Configured])
 
-**Auto-Sync Branch:**
-1. Auto-Sync Timer — Set interval (seconds/minutes).
-2. Configure the auto-sync schedule. (Config-only — no immediate sync.)
+    H & J & L --> P{Pending Changes?}
+    P -- YES --> Q[Show Pending Changes List]
+    P -- NO --> R
+    Q --> R{Conflicts Detected?}
+    R -- YES --> S["Show Conflicts → Resolve First"]
+    S --> R
+    R -- NO --> T[Execute Sync]
+    T --> U{Sync Successful?}
+    U -- YES --> V["Update Last Sync Timestamp"]
+    V --> W([✅ Sync Complete])
+    U -- NO --> X["Show Error + Retry"]
+    X --> T
 
-5. Pull/Push/Full branches merge → **Pending Changes?**
-   - **YES** → Show Pending Changes list.
-   - **NO** → Skip directly to conflict check.
-6. **Conflicts Detected?**
-   - **YES** → Show Conflicts with "Resolve First" prompt. Loop back after resolution.
-   - **NO** → Proceed.
-7. **Execute Sync** — Run the sync operation.
-8. **Sync Successful?**
-   - **YES** → Update Last Sync Timestamp → **Sync Complete** (terminal).
-   - **NO** → Show Error with Retry option. Loop back to Execute Sync.
+    style A fill:#06b6d4,color:#fff
+    style W fill:#10b981,color:#fff
+    style O fill:#10b981,color:#fff
+    style C fill:#ef4444,color:#fff
+    style B fill:#8b5cf6,color:#fff
+    style D fill:#8b5cf6,color:#fff
+    style F fill:#8b5cf6,color:#fff
+    style P fill:#8b5cf6,color:#fff
+    style R fill:#8b5cf6,color:#fff
+    style U fill:#8b5cf6,color:#fff
+    style E fill:#f59e0b,color:#fff
+```
 
 ### Additional Details
 
-- **Internet Gate:** Sync is impossible without internet. The offline indicator is prominently displayed.
-- **Unsaved Changes Notification:** Before initiating any sync, the system alerts the user if there are local edits that haven't been pushed. This prevents data loss.
-- **Auto-Sync Timer:** Configurable interval-based automatic sync. Runs Full Sync silently in background. Pauses if conflicts are detected.
-- **Conflict Resolution:** When the same record differs between local and remote, the user must manually resolve (keep local, keep remote, or merge). No auto-resolution.
-- **Last Sync Timestamp:** Updated on successful sync so users always know when data was last synchronized.
+- **Internet Gate:** Sync is impossible without internet.
+- **Unsaved Changes Notification:** Alerts user before syncing if local edits exist.
+- **Auto-Sync Timer:** Configurable interval. Pauses on conflicts.
+- **Conflict Resolution:** Manual — keep local, keep remote, or merge.
 
 ---
 
 ## 8. Sending Emails
 
-**Purpose:** Compose emails with role-filtered recipient selection, GForm link inclusion, validation, send via SMTP, log history, and view received emails.
+**Purpose:** Role-filtered recipients, GForm link decision, compose, send via SMTP, history tracking.
 
-### Flow Description
+```mermaid
+flowchart TD
+    A([✉️ Enter Sending Emails]) --> B{Select Action}
 
-1. Enter the **Sending Emails Page**.
-2. **Select Action** — 2 branches:
+    B -- Compose --> C["Select Recipients - Role-Filtered"]
+    C --> D["Filter By Program / Year"]
+    D --> E["Compose Email: Subject + Body"]
+    E --> F{Include GForm Link?}
+    F -- YES --> G["Attach GForm Link to Body"]
+    F -- NO --> H[Skip]
+    G & H --> I{Valid Email Form?}
+    I -- NO --> E
+    I -- YES --> J["Send Email via SMTP"]
+    J --> K{Sent Successfully?}
+    K -- YES --> L["Log to Email History"]
+    K -- NO --> M["Show Error + Retry"]
+    M --> J
 
-**Compose Branch (left):**
-1. Select Recipients — Filter by Program/Year (auto-scoped by role).
-2. Filter By Program/Year — Role-filtered (Chairpersons can only email their own program's alumni).
-3. Compose Email — Subject field + Body field.
-4. **Include GForm Link?**
-   - **YES** → Attach GForm link to email body.
-   - **NO** → Skip attachment.
-5. **Valid Email Form?** — Subject & body filled?
-   - **NO** → Loop back to Compose Email.
-   - **YES** → Proceed.
-6. **Send Email** via SMTP.
-7. **Sent Successfully?**
-   - **YES** → Log to Email History → merge.
-   - **NO** → Show Error with Retry option. Loop back to Send.
+    B -- History/Inbox --> N[Email History]
+    N --> O["Display Status: Completed / Pending / Failed"]
+    O --> P[Received Emails]
+    P --> Q["View & Read Responses"]
 
-**History / Inbox Branch (right):**
-1. Email History — Open history view.
-2. Display Status — Show Completed / Pending / Failed badges.
-3. Received Emails — Manual tracking log of alumni responses.
-4. View & Read → merge.
+    L & Q --> R([✉️ Return to Email Page])
 
-3. Both branches merge → **Return to Email Page** (terminal).
+    style A fill:#06b6d4,color:#fff
+    style R fill:#10b981,color:#fff
+    style B fill:#8b5cf6,color:#fff
+    style F fill:#8b5cf6,color:#fff
+    style I fill:#8b5cf6,color:#fff
+    style K fill:#8b5cf6,color:#fff
+```
 
 ### Additional Details
 
-- **Role-Based Recipients:** A CE Chairperson can only send emails to CE alumni. The Dean can email all programs.
-- **GForm Link Decision:** Users optionally include the configured Google Form link in the email body. This is a convenience feature for sending survey reminders.
-- **Template Variables:** Support for `{{fullName}}`, `{{program}}`, `{{yearGraduated}}`, etc. per recipient.
-- **SMTP Dependency:** Requires SMTP configuration from Settings. If unconfigured, sends will fail.
-- **Email History:** Every batch send is logged with delivery status (completed/pending/failed).
+- **Role-Based Recipients:** CE Chairperson can only email CE alumni.
+- **GForm Link Decision:** Optional inclusion for survey reminders.
+- **Template Variables:** `{{fullName}}`, `{{program}}`, `{{yearGraduated}}`, etc.
+- **Email History:** Every batch send logged with delivery status.
 
 ---
 
 ## 9. Settings
 
-**Purpose:** Configure SMTP email connection, Google Sheets spreadsheet connection, sync/database info (Dean-only), and user preferences (dark mode, available to all users).
+**Purpose:** SMTP + Sheets configuration with test/retry loops, Dean-only management sections, and user preferences.
 
-### Flow Description
+```mermaid
+flowchart TD
+    A([⚙️ Enter Settings]) --> B{User Role?}
 
-1. Enter the **Settings Page**.
-2. **Select Setting Type** — 2 main branches:
+    B -- Dean --> C[All Sections Visible]
+    B -- Chairperson --> D[Preferences Only]
 
-**Email / SMTP Branch (left):**
-1. Enter SMTP Config.
-2. Configure SMTP — Host, Port, Auth Credentials.
-3. Test SMTP Connection.
-4. **Connection OK?**
-   - **YES** → **SMTP Config Saved** (terminal for this branch).
-   - **NO** → Loop back to Configure SMTP (Retry).
+    C --> E{Select Setting Type}
 
-**Spreadsheet Branch (right):**
-1. Enter Sheets Config.
-2. Configure Sheets — Google Sheets Link, Auth Credentials.
-3. Test Sheets Connection.
-4. **Connection OK?**
-   - **YES** → **Sheets Config Saved** (terminal for this branch).
-   - **NO** → Loop back to Configure Sheets (Retry).
+    E -- SMTP --> F["Enter SMTP Config"]
+    F --> G["Configure: Host, Port, Auth"]
+    G --> H["Test SMTP Connection"]
+    H --> I{Connection OK?}
+    I -- YES --> J[✅ SMTP Config Saved]
+    I -- NO --> K["Show Error"]
+    K --> G
 
-3. Both branches merge → **Settings Saved & Applied**.
-4. → **Return to Dashboard** (terminal).
+    E -- Spreadsheet --> L["Enter Sheets Config"]
+    L --> M["Configure: Sheet ID, Auth Key"]
+    M --> N["Test Sheets Connection"]
+    N --> O{Connection OK?}
+    O -- YES --> P[✅ Sheets Config Saved]
+    O -- NO --> Q["Show Error"]
+    Q --> M
+
+    E -- Sync/DB Info --> R["Configure Auto-Sync, GForm Link, DB Info"]
+    E -- Accounts --> S["Manage Accounts (Add/Edit/Deactivate)"]
+
+    D --> T["Dark Mode Toggle"]
+    D --> U["Display Preferences"]
+
+    J & P & R & S & T & U --> V[Settings Saved & Applied]
+    V --> W([🏠 Return to Dashboard])
+
+    style A fill:#06b6d4,color:#fff
+    style W fill:#10b981,color:#fff
+    style J fill:#10b981,color:#fff
+    style P fill:#10b981,color:#fff
+    style B fill:#8b5cf6,color:#fff
+    style E fill:#8b5cf6,color:#fff
+    style I fill:#8b5cf6,color:#fff
+    style O fill:#8b5cf6,color:#fff
+```
 
 ### Settings Sections by Role Access
 
-| Section | Dean | Chairperson | Description |
-|---------|------|-------------|-------------|
-| SMTP Configuration | ✅ Manage | ❌ View-only | Host, port, user, password, TLS |
-| Spreadsheet Connection | ✅ Manage | ❌ View-only | Sheet ID, service account key, sheet name |
-| Sync & Database Info | ✅ Manage | ❌ View-only | Auto-sync interval, GForm link, DB info |
-| Accounts Management | ✅ Manage | ❌ Hidden | Add/edit/deactivate user accounts |
-| User Preferences | ✅ Manage | ✅ Manage | Dark mode (Tailwind), display settings |
-
-### Additional Details
-
-- **Dean-Only Management:** Only the Dean can modify SMTP, Spreadsheet, Sync/Database, and Accounts settings. Chairpersons see read-only info or have these sections hidden.
-- **Preferences for All:** Dark mode toggle (via Tailwind CSS `dark:` classes) and display preferences are accessible to all users.
-- **Test Connections:** Both SMTP and Sheets have "Test Connection" buttons with immediate pass/fail feedback and retry loops.
-- **Accounts Management:** The Dean can add, edit, and deactivate accounts directly from Settings. New accounts can also be created manually on the Sheets "Accounts" tab.
+| Section | Dean | Chairperson |
+|---------|------|-------------|
+| SMTP Configuration | ✅ Manage | ❌ View-only |
+| Spreadsheet Connection | ✅ Manage | ❌ View-only |
+| Sync & Database Info | ✅ Manage | ❌ View-only |
+| Accounts Management | ✅ Manage | ❌ Hidden |
+| User Preferences | ✅ Manage | ✅ Manage |
 
 ---
 
 ## 10. About
 
-**Purpose:** System overview, core feature summaries, and a user-friendly manual designed for non-technical users.
+**Purpose:** System overview, core feature summaries, and a user-friendly manual for non-technical users.
 
-### Flow Description
+```mermaid
+flowchart TD
+    A([ℹ️ Enter About Page]) --> B[Render About Page]
+    B --> C{Select View Section}
 
-1. Enter the **About Page**.
-2. **Render About Page** — Load static content.
-3. **Select View Section** — 3 branches:
+    C -- System Info --> D[System Overview]
+    D --> E["Display: Purpose, Goals, Version, Credits"]
 
-**System Info Branch:**
-1. System Overview.
-2. Display: Purpose & Goals, Target Users, Version Info.
+    C -- Core Features --> F[Core Features List]
+    F --> G["Display 9 Feature Summary Cards"]
 
-**Core Features Branch:**
-1. Core Features summary list.
-2. Display all 9 features:
-   1. Analytics Dashboard
-   2. Alumni Directory
-   3. Alumni Profiling
-   4. Reports & Export
-   5. Data Sync
-   6. Sending Emails
-   7. Settings
-   8. About
-   9. Login & Accounts
+    C -- User Manual --> H[User Manual]
+    H --> I["Step-by-Step Guide for Non-Technical Users"]
+    I --> J["FAQs & Contact/Support"]
 
-**User Manual Branch:**
-1. User Manual — Designed for older, non-technical users.
-2. Contents: Step-by-step guide with screenshots, FAQs, Contact/Support.
+    E & G & J --> K([✅ Page Content Displayed])
 
-3. All branches merge → **Page Content Displayed**.
-4. → **Return to Dashboard** (terminal).
+    style A fill:#06b6d4,color:#fff
+    style K fill:#10b981,color:#fff
+    style C fill:#8b5cf6,color:#fff
+```
 
-### Additional Details
+### 9 Core Features Listed
 
-- **User-Friendly Manual:** The User Manual section is specifically designed for users who may not be tech-savvy. It uses simple language, large clear steps, visual aids (screenshots/illustrations), and avoids technical jargon.
-- **9 Core Features:** The feature list now includes Login & Accounts as the 9th feature (alongside the original 8 from the client sitemap).
-- **Static Page:** The About page makes no database queries. The only IPC call is for the app version number.
+1. Login & Accounts
+2. Analytics Dashboard
+3. Alumni Directory
+4. Alumni Profiling
+5. Reports & Export
+6. Data Sync
+7. Sending Emails
+8. Settings
+9. About
+
+### User Manual Design
+
+- **Simple language** — no technical jargon
+- **Large numbered steps** — clear action → result format
+- **Visual aids** — screenshots/illustrations where applicable
+- **FAQs** — common questions with reassuring answers
 
 ---
 
