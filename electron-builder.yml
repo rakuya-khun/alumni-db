@@ -1,0 +1,15 @@
+appId: com.alumni-db.app
+productName: Alumni DB
+directories:
+  buildResources: resources
+  output: release
+files:
+  - out/**/*
+extraResources:
+  - from: ./node_modules/sql.js/dist/sql-wasm.wasm
+    to: sql-wasm.wasm
+win:
+  target: nsis
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
