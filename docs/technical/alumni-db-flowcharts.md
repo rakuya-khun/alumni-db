@@ -28,14 +28,14 @@
 ```mermaid
 flowchart TD
     A([🚀 Launch Application]) --> B[Display Login Screen]
-    B --> C["Enter Username & Password"]
+    B --> C[/"Enter Username & Password"/]
     C --> D{Valid Login?}
-    D -- NO --> E[Show Error Message]
+    D -- NO --> E[/"Show Error Message"/]
     E --> C
     D -- YES --> F{Identify User Role}
     F -- Dean --> G["All Programs (CE · CpE · EE)"]
     F -- Chairperson --> H["Own Program Only"]
-    G --> I[Load Filtered Dashboard]
+    G --> I{{"Load Filtered Dashboard"}}
     H --> I
     I --> J{Select Module}
     J --> K["1. Analytic Dashboard"]
@@ -56,6 +56,11 @@ flowchart TD
     style F fill:#8b5cf6,color:#fff
     style S fill:#8b5cf6,color:#fff
     style I fill:#06b6d4,color:#fff
+    linkStyle 3 stroke:#ef4444
+    linkStyle 4 stroke:#3b82f6,stroke-dasharray:5
+    linkStyle 5 stroke:#10b981
+    linkStyle 27 stroke:#ef4444
+    linkStyle 28 stroke:#10b981
 ```
 
 ### Flow Description
@@ -91,24 +96,24 @@ flowchart TD
 ```mermaid
 flowchart TD
     A([🚀 Launch Application]) --> B[Display Login Screen]
-    B --> C["Enter Username & Password"]
+    B --> C[/"Enter Username & Password"/]
     C --> D{Internet Available?}
-    D -- YES --> E["Authenticate via Sheets 'Accounts' Tab"]
-    D -- NO --> F["Authenticate via Encrypted Local Cache"]
+    D -- YES --> E{{"Authenticate via Sheets 'Accounts' Tab"}}
+    D -- NO --> F{{"Authenticate via Encrypted Local Cache"}}
     E --> G{Valid Credentials?}
     F --> G
     G -- YES --> H{Identify Role}
     G -- NO --> I{Attempts ≥ 3?}
-    I -- YES --> J["🔒 Account Locked (5 min)"]
+    I -- YES --> J[/"🔒 Account Locked (5 min)"/]
     J --> B
-    I -- NO --> K["Show Error: Invalid Credentials"]
+    I -- NO --> K[/"Show Error: Invalid Credentials"/]
     K --> C
     H -- Dean --> L["All Programs (CE · CpE · EE)"]
     H -- CE Chair --> M[CE Data Only]
     H -- CpE Chair --> N[CpE Data Only]
     H -- EE Chair --> O[EE Data Only]
-    L & M & N & O --> P["Encrypt & Cache Account Locally"]
-    P --> Q[Load Filtered Dashboard]
+    L & M & N & O --> P{{"Encrypt & Cache Account Locally"}}
+    P --> Q{{"Load Filtered Dashboard"}}
     Q --> R[Start User Session]
     R --> S([✅ Access All System Modules])
 
@@ -119,6 +124,14 @@ flowchart TD
     style H fill:#8b5cf6,color:#fff
     style I fill:#8b5cf6,color:#fff
     style D fill:#8b5cf6,color:#fff
+    linkStyle 3 stroke:#10b981
+    linkStyle 4 stroke:#ef4444
+    linkStyle 7 stroke:#10b981
+    linkStyle 8 stroke:#ef4444
+    linkStyle 9 stroke:#10b981
+    linkStyle 10 stroke:#3b82f6,stroke-dasharray:5
+    linkStyle 11 stroke:#ef4444
+    linkStyle 12 stroke:#3b82f6,stroke-dasharray:5
 ```
 
 ### Accounts Sheet Structure
@@ -155,31 +168,33 @@ Accounts are stored in a dedicated **"Accounts" tab** within the same Google She
 
 ```mermaid
 flowchart TD
-    A([📊 Enter Dashboard]) --> B["Apply Role-Based Filter"]
+    A([📊 Enter Dashboard]) --> B{{"Apply Role-Based Filter"}}
     B --> C{Alumni Data Available?}
-    C -- NO --> D["Show Empty State"]
-    C -- YES --> E["Load Summary Cards"]
+    C -- NO --> D[/"Show Empty State"/]
+    C -- YES --> E{{"Load Summary Cards"}}
     E --> F["Total Responses"]
     E --> G["CE / CpE / EE Respondents"]
-    F & G --> H["Compute % Statistics"]
+    F & G --> H{{"Compute % Statistics"}}
     H --> I["% Board Passers"]
     H --> J["% Employed Alumni"]
     H --> K["% Field-Related Jobs"]
     H --> L["% Supervisory Roles"]
-    I & J & K & L --> M["Load Frequency & Weighted Mean Tables"]
+    I & J & K & L --> M{{"Load Frequency & Weighted Mean Tables"}}
     M --> N["Curriculum Relevance"]
     M --> O["Competencies (9 items)"]
     M --> P["Employment Status"]
     M --> Q["Industry Sector"]
     M --> R["Other Survey Tables"]
-    N & O & P & Q & R --> S[Render Full Dashboard]
-    S --> T["Display Charts & Tables"]
+    N & O & P & Q & R --> S{{"Render Full Dashboard"}}
+    S --> T[/"Display Charts & Tables"/]
     T --> U([✅ Dashboard Displayed])
 
     style A fill:#06b6d4,color:#fff
     style U fill:#10b981,color:#fff
     style C fill:#8b5cf6,color:#fff
     style B fill:#f59e0b,color:#fff
+    linkStyle 2 stroke:#ef4444
+    linkStyle 3 stroke:#10b981
 ```
 
 ### Additional Details
@@ -196,41 +211,41 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A([📋 Enter Alumni Directory]) --> B["Apply Role-Based Filter"]
+    A([📋 Enter Alumni Directory]) --> B{{"Apply Role-Based Filter"}}
     B --> C[Display Filtered Alumni List]
     C --> D{Select Action}
 
     D -- Search/Filter --> E[Select Filter Options]
-    E --> F["Apply Filter (Program, Year, Location, etc.)"]
-    F --> G[Show Filtered Results]
+    E --> F{{"Apply Filter (Program, Year, Location, etc.)"}}
+    F --> G[/"Show Filtered Results"/]
     G --> D
 
     D -- Add --> H["Open Add Form (GForm Fields)"]
-    H --> I["Fill All Required Fields"]
+    H --> I[/"Fill All Required Fields"/]
     I --> J{Valid?}
     J -- NO --> I
-    J -- YES --> K["Save to Local DB (Pending Sync)"]
+    J -- YES --> K{{"Save to Local DB (Pending Sync)"}}
     K --> L
 
-    D -- Edit --> M[Load Selected Alumni Record]
-    M --> N["Modify Fields"]
+    D -- Edit --> M{{"Load Selected Alumni Record"}}
+    M --> N[/"Modify Fields"/]
     N --> O{Valid?}
     O -- NO --> N
-    O -- YES --> P["Create History Snapshot"]
-    P --> Q["Update DB (Pending Sync)"]
+    O -- YES --> P{{"Create History Snapshot"}}
+    P --> Q{{"Update DB (Pending Sync)"}}
     Q --> L
 
     D -- Delete --> R{Confirm Delete?}
     R -- NO --> D
-    R -- YES --> S[Remove Record from DB]
+    R -- YES --> S{{"Remove Record from DB"}}
     S --> L
 
     D -- View Profile --> T[Open Alumni Profile Page]
-    T --> U["Show Full Profile + Timeline"]
+    T --> U[/"Show Full Profile + Timeline"/]
     U --> L
 
     L{Mark for Sync?}
-    L -- YES --> V[Queue for Sync]
+    L -- YES --> V{{"Queue for Sync"}}
     L -- NO --> W[Skip Sync Queue]
     V & W --> X([🔄 Return to Directory])
 
@@ -242,6 +257,15 @@ flowchart TD
     style R fill:#8b5cf6,color:#fff
     style L fill:#8b5cf6,color:#fff
     style B fill:#f59e0b,color:#fff
+    linkStyle 6 stroke:#3b82f6,stroke-dasharray:5
+    linkStyle 10 stroke:#ef4444
+    linkStyle 11 stroke:#10b981
+    linkStyle 16 stroke:#ef4444
+    linkStyle 17 stroke:#10b981
+    linkStyle 21 stroke:#ef4444
+    linkStyle 22 stroke:#10b981
+    linkStyle 27 stroke:#10b981
+    linkStyle 28 stroke:#ef4444
 ```
 
 ### Additional Details
@@ -259,21 +283,21 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A([👤 Enter Alumni Profiling]) --> B["Load Alumni Records (Role-Filtered)"]
+    A([👤 Enter Alumni Profiling]) --> B{{"Load Alumni Records (Role-Filtered)"}}
     B --> C{Records Found?}
-    C -- NO --> D["Show 'No Records' Message"]
+    C -- NO --> D[/"Show 'No Records' Message"/]
     C -- YES --> E["Select Alumni Record"]
-    E --> F[Load Full Profile Data]
+    E --> F{{"Load Full Profile Data"}}
     F --> G{Select Display View}
 
-    G -- Full History --> H["Display All Submissions & Edits"]
-    H --> I["Show Every Field from Every Snapshot"]
+    G -- Full History --> H[/"Display All Submissions & Edits"/]
+    H --> I[/"Show Every Field from Every Snapshot"/]
 
-    G -- Latest Updates --> J["Display Recent Changes Only"]
-    J --> K["Highlight Modified Fields (Diff)"]
+    G -- Latest Updates --> J[/"Display Recent Changes Only"/]
+    J --> K[/"Highlight Modified Fields (Diff)"/]
 
-    G -- Timeline --> L["Display Visual Timeline"]
-    L --> M["Each Entry: Date, Changed Count, Summary"]
+    G -- Timeline --> L[/"Display Visual Timeline"/]
+    L --> M[/"Each Entry: Date, Changed Count, Summary"/]
 
     I & K & M --> N([✅ Profile Displayed])
 
@@ -281,6 +305,8 @@ flowchart TD
     style N fill:#10b981,color:#fff
     style C fill:#8b5cf6,color:#fff
     style G fill:#8b5cf6,color:#fff
+    linkStyle 2 stroke:#ef4444
+    linkStyle 3 stroke:#10b981
 ```
 
 ### Additional Details
@@ -297,31 +323,31 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A([📄 Enter Reports & Export]) --> B["Apply Role-Based Filter"]
+    A([📄 Enter Reports & Export]) --> B{{"Apply Role-Based Filter"}}
     B --> C{Alumni Data Available?}
-    C -- NO --> D["Show Empty State"]
+    C -- NO --> D[/"Show Empty State"/]
     C -- YES --> E{Select Export Type}
 
-    E -- PDF --> F["Generate PDF (Stats + Directory)"]
-    F --> G["Download .pdf"]
+    E -- PDF --> F{{"Generate PDF (Stats + Directory)"}}
+    F --> G[/"Download .pdf"/]
 
-    E -- DOCX --> H["Generate Styled Word Document"]
-    H --> I["Download .docx"]
+    E -- DOCX --> H{{"Generate Styled Word Document"}}
+    H --> I[/"Download .docx"/]
 
-    E -- XLSX --> J["Export as Excel Workbook"]
-    J --> K["Download .xlsx (Multi-Tab)"]
+    E -- XLSX --> J{{"Export as Excel Workbook"}}
+    J --> K[/"Download .xlsx (Multi-Tab)"/]
 
     E -- Filtered Print --> L["Select Filter Criteria"]
-    L --> M["Apply Filter & Generate"]
-    M --> N["Download Filtered File"]
+    L --> M{{"Apply Filter & Generate"}}
+    M --> N[/"Download Filtered File"/]
 
     E -- Preview/Print --> O["Open Print Dialog"]
-    O --> P["Render Print-Optimized View"]
+    O --> P{{"Render Print-Optimized View"}}
     P --> Q["Print or Cancel"]
 
     G & I & K & N & Q --> R{Export Successful?}
     R -- YES --> S([✅ Return to Reports])
-    R -- NO --> T["Show Error + Retry"]
+    R -- NO --> T[/"Show Error + Retry"/]
     T --> E
 
     style A fill:#06b6d4,color:#fff
@@ -330,6 +356,11 @@ flowchart TD
     style E fill:#8b5cf6,color:#fff
     style R fill:#8b5cf6,color:#fff
     style B fill:#f59e0b,color:#fff
+    linkStyle 2 stroke:#ef4444
+    linkStyle 3 stroke:#10b981
+    linkStyle 21 stroke:#10b981
+    linkStyle 22 stroke:#ef4444
+    linkStyle 23 stroke:#3b82f6,stroke-dasharray:5
 ```
 
 ### Additional Details
@@ -347,36 +378,36 @@ flowchart TD
 ```mermaid
 flowchart TD
     A([🔄 Enter Data Sync]) --> B{Internet Available?}
-    B -- NO --> C["Show Offline Indicator (Buttons Disabled)"]
+    B -- NO --> C[/"Show Offline Indicator (Buttons Disabled)"/]
     B -- YES --> D{Unsaved Changes?}
-    D -- YES --> E["⚠️ Show Notification: 'N Unsaved Changes'"]
+    D -- YES --> E[/"⚠️ Show Notification: 'N Unsaved Changes'"/]
     E --> F
     D -- NO --> F{Select Sync Action}
 
-    F -- Pull --> G["Pull from Sheets"]
-    G --> H["Fetch Remote Data → Merge to Local"]
+    F -- Pull --> G{{"Pull from Sheets"}}
+    G --> H{{"Fetch Remote Data → Merge to Local"}}
 
-    F -- Push --> I["Push to Sheets"]
-    I --> J["Upload Local Data to Sheets"]
+    F -- Push --> I{{"Push to Sheets"}}
+    I --> J{{"Upload Local Data to Sheets"}}
 
-    F -- Full Sync --> K["Full Sync (Pull + Push)"]
-    K --> L["Bidirectional Merge"]
+    F -- Full Sync --> K{{"Full Sync (Pull + Push)"}}
+    K --> L{{"Bidirectional Merge"}}
 
-    F -- Auto-Sync --> M["Auto-Sync Timer"]
-    M --> N["Configure Interval (secs/mins)"]
+    F -- Auto-Sync --> M{{"Auto-Sync Timer"}}
+    M --> N[/"Configure Interval (secs/mins)"/]
     N --> O([⏱️ Timer Configured])
 
     H & J & L --> P{Pending Changes?}
-    P -- YES --> Q[Show Pending Changes List]
+    P -- YES --> Q[/"Show Pending Changes List"/]
     P -- NO --> R
     Q --> R{Conflicts Detected?}
-    R -- YES --> S["Show Conflicts → Resolve First"]
+    R -- YES --> S[/"Show Conflicts → Resolve First"/]
     S --> R
-    R -- NO --> T[Execute Sync]
+    R -- NO --> T{{"Execute Sync"}}
     T --> U{Sync Successful?}
-    U -- YES --> V["Update Last Sync Timestamp"]
+    U -- YES --> V{{"Update Last Sync Timestamp"}}
     V --> W([✅ Sync Complete])
-    U -- NO --> X["Show Error + Retry"]
+    U -- NO --> X[/"Show Error + Retry"/]
     X --> T
 
     style A fill:#06b6d4,color:#fff
@@ -390,6 +421,18 @@ flowchart TD
     style R fill:#8b5cf6,color:#fff
     style U fill:#8b5cf6,color:#fff
     style E fill:#f59e0b,color:#fff
+    linkStyle 1 stroke:#ef4444
+    linkStyle 2 stroke:#10b981
+    linkStyle 3 stroke:#10b981
+    linkStyle 5 stroke:#ef4444
+    linkStyle 18 stroke:#10b981
+    linkStyle 19 stroke:#ef4444
+    linkStyle 21 stroke:#10b981
+    linkStyle 22 stroke:#3b82f6,stroke-dasharray:5
+    linkStyle 23 stroke:#ef4444
+    linkStyle 25 stroke:#10b981
+    linkStyle 27 stroke:#ef4444
+    linkStyle 28 stroke:#3b82f6,stroke-dasharray:5
 ```
 
 ### Additional Details
@@ -411,22 +454,22 @@ flowchart TD
 
     B -- Compose --> C["Select Recipients - Role-Filtered"]
     C --> D["Filter By Program / Year"]
-    D --> E["Compose Email: Subject + Body"]
+    D --> E[/"Compose Email: Subject + Body"/]
     E --> F{Include GForm Link?}
-    F -- YES --> G["Attach GForm Link to Body"]
+    F -- YES --> G{{"Attach GForm Link to Body"}}
     F -- NO --> H[Skip]
     G & H --> I{Valid Email Form?}
     I -- NO --> E
-    I -- YES --> J["Send Email via SMTP"]
+    I -- YES --> J{{"Send Email via SMTP"}}
     J --> K{Sent Successfully?}
-    K -- YES --> L["Log to Email History"]
-    K -- NO --> M["Show Error + Retry"]
+    K -- YES --> L{{"Log to Email History"}}
+    K -- NO --> M[/"Show Error + Retry"/]
     M --> J
 
     B -- History/Inbox --> N[Email History]
-    N --> O["Display Status: Completed / Pending / Failed"]
+    N --> O[/"Display Status: Completed / Pending / Failed"/]
     O --> P[Received Emails]
-    P --> Q["View & Read Responses"]
+    P --> Q[/"View & Read Responses"/]
 
     L & Q --> R([✉️ Return to Email Page])
 
@@ -436,6 +479,13 @@ flowchart TD
     style F fill:#8b5cf6,color:#fff
     style I fill:#8b5cf6,color:#fff
     style K fill:#8b5cf6,color:#fff
+    linkStyle 5 stroke:#10b981
+    linkStyle 6 stroke:#ef4444
+    linkStyle 9 stroke:#ef4444
+    linkStyle 10 stroke:#10b981
+    linkStyle 12 stroke:#10b981
+    linkStyle 13 stroke:#ef4444
+    linkStyle 14 stroke:#3b82f6,stroke-dasharray:5
 ```
 
 ### Additional Details
@@ -460,24 +510,24 @@ flowchart TD
 
     C --> E{Select Setting Type}
 
-    E -- SMTP --> F["Enter SMTP Config"]
-    F --> G["Configure: Host, Port, Auth"]
-    G --> H["Test SMTP Connection"]
+    E -- SMTP --> F[/"Enter SMTP Config"/]
+    F --> G[/"Configure: Host, Port, Auth"/]
+    G --> H{{"Test SMTP Connection"}}
     H --> I{Connection OK?}
     I -- YES --> J[✅ SMTP Config Saved]
-    I -- NO --> K["Show Error"]
+    I -- NO --> K[/"Show Error"/]
     K --> G
 
-    E -- Spreadsheet --> L["Enter Sheets Config"]
-    L --> M["Configure: Sheet ID, Auth Key"]
-    M --> N["Test Sheets Connection"]
+    E -- Spreadsheet --> L[/"Enter Sheets Config"/]
+    L --> M[/"Configure: Sheet ID, Auth Key"/]
+    M --> N{{"Test Sheets Connection"}}
     N --> O{Connection OK?}
     O -- YES --> P[✅ Sheets Config Saved]
-    O -- NO --> Q["Show Error"]
+    O -- NO --> Q[/"Show Error"/]
     Q --> M
 
-    E -- Sync/DB Info --> R["Configure Auto-Sync, GForm Link, DB Info"]
-    E -- Accounts --> S["Manage Accounts (Add/Edit/Deactivate)"]
+    E -- Sync/DB Info --> R[/"Configure Auto-Sync, GForm Link, DB Info"/]
+    E -- Accounts --> S{{"Manage Accounts (Add/Edit/Deactivate)"}}
 
     D --> T["Dark Mode Toggle"]
     D --> U["Display Preferences"]
@@ -493,6 +543,12 @@ flowchart TD
     style E fill:#8b5cf6,color:#fff
     style I fill:#8b5cf6,color:#fff
     style O fill:#8b5cf6,color:#fff
+    linkStyle 8 stroke:#10b981
+    linkStyle 9 stroke:#ef4444
+    linkStyle 10 stroke:#3b82f6,stroke-dasharray:5
+    linkStyle 15 stroke:#10b981
+    linkStyle 16 stroke:#ef4444
+    linkStyle 17 stroke:#3b82f6,stroke-dasharray:5
 ```
 
 ### Settings Sections by Role Access
@@ -517,14 +573,14 @@ flowchart TD
     B --> C{Select View Section}
 
     C -- System Info --> D[System Overview]
-    D --> E["Display: Purpose, Goals, Version, Credits"]
+    D --> E[/"Display: Purpose, Goals, Version, Credits"/]
 
     C -- Core Features --> F[Core Features List]
-    F --> G["Display 9 Feature Summary Cards"]
+    F --> G[/"Display 9 Feature Summary Cards"/]
 
     C -- User Manual --> H[User Manual]
-    H --> I["Step-by-Step Guide for Non-Technical Users"]
-    I --> J["FAQs & Contact/Support"]
+    H --> I[/"Step-by-Step Guide for Non-Technical Users"/]
+    I --> J[/"FAQs & Contact/Support"/]
 
     E & G & J --> K([✅ Page Content Displayed])
 
