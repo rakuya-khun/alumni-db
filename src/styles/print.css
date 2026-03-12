@@ -1,0 +1,91 @@
+@media print {
+  /* Hide non-printable elements: sidebar, topbar, buttons, toasts */
+  nav,
+  aside,
+  .sidebar,
+  .top-bar,
+  .no-print,
+  button,
+  .toast-container,
+  [data-sidebar],
+  header {
+    display: none !important;
+  }
+
+  /* Reset main content to full width — remove sidebar margin and topbar padding */
+  main,
+  .main-content {
+    margin: 0 !important;
+    margin-left: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Override Tailwind ml-16/ml-64 and pt-16 on main */
+  main.ml-16,
+  main.ml-64 {
+    margin-left: 0 !important;
+  }
+
+  main.pt-16 {
+    padding-top: 0 !important;
+  }
+
+  /* Page settings */
+  @page {
+    size: A4 landscape;
+    margin: 1cm;
+  }
+
+  body {
+    font-size: 10pt;
+    color: #000 !important;
+    background: #fff !important;
+  }
+
+  /* Cards print as simple blocks */
+  .rounded-xl {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    border: 1px solid #ccc !important;
+  }
+
+  /* Force colors for branded elements */
+  .bg-primary {
+    background-color: #9B2335 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Tables */
+  table {
+    page-break-inside: auto;
+    width: 100% !important;
+  }
+
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  /* Ensure charts and images print */
+  svg {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  /* Dark mode backgrounds reset for print */
+  .dark body,
+  .dark main,
+  .dark .bg-surface-secondary,
+  .dark .bg-surface-primary,
+  .dark .bg-card {
+    background: #fff !important;
+    color: #000 !important;
+  }
+}

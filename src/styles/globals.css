@@ -1,3 +1,175 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    /* --- Font sizes --- */
+    --font-size-base: 1rem;
+    --font-size-sm: 0.875rem;
+    --font-size-xs: 0.75rem;
+    --font-size-lg: 1.125rem;
+    --font-size-xl: 1.25rem;
+    --font-size-2xl: 1.5rem;
+
+    /* --- Background --- */
+    --color-bg-primary: 255 255 255;
+    --color-bg-secondary: 249 250 251;
+    --color-bg-tertiary: 243 244 246;
+
+    /* --- Sidebar --- */
+    --color-sidebar-bg: 255 255 255;
+    --color-sidebar-text: 107 114 128;
+    --color-sidebar-text-active: 17 24 39;
+    --color-sidebar-accent: var(--color-accent);
+    --color-sidebar-accent-bg: 155 35 53;
+    --color-sidebar-hover: 243 244 246;
+    --color-sidebar-muted: 156 163 175;
+
+    /* --- Accent (Engineering Maroon — SLSU College of Engineering) --- */
+    --color-accent: 155 35 53;
+    --color-accent-light: 192 75 92;
+    --color-accent-foreground: 255 255 255;
+
+    /* --- Text --- */
+    --color-text-primary: 17 24 39;
+    --color-text-secondary: 107 114 128;
+    --color-text-muted: 156 163 175;
+
+    /* --- Cards --- */
+    --color-card-bg: 255 255 255;
+    --color-card-border: 229 231 235;
+
+    /* --- Status --- */
+    --color-success: 34 197 94;
+    --color-warning: 234 179 8;
+    --color-error: 239 68 68;
+    --color-info: 59 130 246;
+
+    /* --- Charts (6-color maroon-based palette) --- */
+    --color-chart-1: 155 35 53;
+    --color-chart-2: 192 75 92;
+    --color-chart-3: 220 130 140;
+    --color-chart-4: 245 190 195;
+    --color-chart-5: 234 179 8;
+    --color-chart-6: 59 130 246;
+  }
+
+  .dark {
+    --color-bg-primary: 31 41 55;
+    --color-bg-secondary: 17 24 39;
+    --color-bg-tertiary: 55 65 81;
+
+    --color-sidebar-bg: 17 24 39;
+    --color-sidebar-text: 156 163 175;
+    --color-sidebar-text-active: 255 255 255;
+    --color-sidebar-accent-bg: 192 75 92;
+    --color-sidebar-hover: 55 65 81;
+    --color-sidebar-muted: 107 114 128;
+
+    --color-text-primary: 243 244 246;
+    --color-text-secondary: 156 163 175;
+    --color-text-muted: 107 114 128;
+
+    --color-card-bg: 31 41 55;
+    --color-card-border: 55 65 81;
+
+    --color-chart-1: 192 75 92;
+    --color-chart-2: 220 130 140;
+    --color-chart-3: 245 190 195;
+    --color-chart-4: 255 220 222;
+    --color-chart-5: 250 204 21;
+    --color-chart-6: 96 165 250;
+  }
+
+  .maroon {
+    /* --- Backgrounds --- */
+    --color-bg-primary: 255 255 255;
+    --color-bg-secondary: 255 249 237;
+    --color-bg-tertiary: 245 242 238;
+
+    /* --- Sidebar: deep maroon #560D0E --- */
+    --color-sidebar-bg: 86 13 14;
+    --color-sidebar-text: 200 180 175;
+    --color-sidebar-text-active: 255 255 255;
+    --color-sidebar-accent-bg: 130 35 35;
+    --color-sidebar-hover: 105 30 30;
+    --color-sidebar-muted: 170 145 138;
+
+    /* --- Accent (keep engineering maroon) --- */
+    --color-accent: 155 35 53;
+    --color-accent-light: 185 60 75;
+
+    /* --- Text: neutral dark for clean readability --- */
+    --color-text-primary: 30 30 32;
+    --color-text-secondary: 100 100 105;
+    --color-text-muted: 160 160 165;
+
+    /* --- Cards/components: white --- */
+    --color-card-bg: 255 255 255;
+    --color-card-border: 228 225 220;
+
+    /* --- Charts --- */
+    --color-chart-1: 86 13 14;
+    --color-chart-2: 155 35 53;
+    --color-chart-3: 192 100 85;
+    --color-chart-4: 210 160 140;
+    --color-chart-5: 180 145 50;
+    --color-chart-6: 100 130 120;
+  }
+
+  /* --- Font Size Scales --- */
+  .font-size-small {
+    font-size: 13px;
+  }
+  .font-size-small .text-xs { font-size: 0.6875rem; }
+  .font-size-small .text-sm { font-size: 0.75rem; }
+  .font-size-small .text-base { font-size: 0.8125rem; }
+  .font-size-small .text-lg { font-size: 0.9375rem; }
+  .font-size-small .text-xl { font-size: 1.0625rem; }
+  .font-size-small .text-2xl { font-size: 1.25rem; }
+
+  .font-size-default {
+    font-size: 16px;
+  }
+
+  .font-size-large {
+    font-size: 18px;
+  }
+  .font-size-large .text-xs { font-size: 0.8125rem; }
+  .font-size-large .text-sm { font-size: 0.9375rem; }
+  .font-size-large .text-base { font-size: 1.125rem; }
+  .font-size-large .text-lg { font-size: 1.25rem; }
+  .font-size-large .text-xl { font-size: 1.5rem; }
+  .font-size-large .text-2xl { font-size: 1.75rem; }
+
+  .font-size-x-large {
+    font-size: 20px;
+  }
+  .font-size-x-large .text-xs { font-size: 0.875rem; }
+  .font-size-x-large .text-sm { font-size: 1rem; }
+  .font-size-x-large .text-base { font-size: 1.25rem; }
+  .font-size-x-large .text-lg { font-size: 1.375rem; }
+  .font-size-x-large .text-xl { font-size: 1.625rem; }
+  .font-size-x-large .text-2xl { font-size: 2rem; }
+}
+
+/* Custom scrollbar for dashboard tables */
+.dashboard-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.dashboard-scroll::-webkit-scrollbar-track {
+  background: rgb(var(--color-bg-tertiary));
+  border-radius: 3px;
+}
+.dashboard-scroll::-webkit-scrollbar-thumb {
+  background: rgb(var(--color-text-muted) / 0.4);
+  border-radius: 3px;
+}
+.dashboard-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--color-text-muted) / 0.6);
+}
+.dashboard-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--color-text-muted) / 0.4) rgb(var(--color-bg-tertiary));
+}

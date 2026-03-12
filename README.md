@@ -1,6 +1,39 @@
 # Alumni DB Management System
 
-Offline-first Electron desktop app for managing alumni survey data from CE, CpE, and EE programs.
+Offline-first Electron desktop application for managing, analyzing, and exporting alumni survey data from three engineering programs (CE, CpE, EE) at **Southern Luzon State University (SLSU), College of Engineering**. Supports PTC-ACBET accreditation through Outcome-Based Education (OBE) evaluation.
+
+---
+
+## Features
+
+- **Dashboard** — KPI stat cards (Board Passers, Employment, Field-Related, Supervisory), survey frequency tables, weighted mean analysis, charts (bar, line, pie)
+- **Alumni Directory** — Full CRUD with search, filter by program/year/status, sortable data table, 7-section add/edit form with ~58 fields
+- **Alumni Profiling** — Search/browse profiles, 3-tab detail view (History diff, Latest Updates, Timeline)
+- **Data Sync** — Pull/Push/Full sync with Google Sheets, conflict resolution, auto-sync scheduling, pending changes tracking
+- **Email** — Compose emails to filtered alumni with template variables, Google Form link toggle, sent/received history
+- **Reports & Exports** — PDF, DOCX, XLSX exports with program/year/status filters
+- **Settings** — SMTP configuration, Google Sheets integration, account management (Dean-only), dark mode, preferences
+- **Help & About** — User manual (20 steps), FAQ (14 items), troubleshooting (8 categories), system info
+- **Role-Based Access** — Dean (all programs), CE/CpE/EE Chairs (program-scoped)
+- **Offline-First** — Local sql.js database with encrypted auth cache for offline login
+- **Dark Mode** — Full light/dark theme support with maroon (#9B2335) brand accent
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Desktop Shell | Electron 33 |
+| Bundler | electron-vite + Vite |
+| Frontend | React 18 + TypeScript |
+| Routing | react-router-dom |
+| State | Zustand |
+| Styling | Tailwind CSS |
+| Forms | react-hook-form + Zod |
+| Database | sql.js (SQLite WASM) |
+| Charts | Recharts |
+| Email | Nodemailer |
+| Google API | googleapis (Sheets v4) |
+| Exports | jsPDF, docx, ExcelJS |
 
 ---
 

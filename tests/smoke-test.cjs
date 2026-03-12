@@ -156,9 +156,10 @@ check(
 )
 
 check(
-  'tsconfig.renderer includes src',
-  fileContains('tsconfig.renderer.json', '"include": ["src"]'),
-  'tsconfig.renderer.json must include "src"'
+  'tsconfig.renderer includes src and shared',
+  fileContains('tsconfig.renderer.json', '"src"') &&
+  fileContains('tsconfig.renderer.json', '"shared"'),
+  'tsconfig.renderer.json must include "src" and "shared"'
 )
 
 check(
@@ -168,8 +169,67 @@ check(
   'tsconfig.electron.json must include "electron" and "shared"'
 )
 
-// ─── 6. Build output check ───
-console.log('\n🔍 6. Build output (run pnpm build first)\n')
+// ─── 6. Key implementation checks ───
+console.log('\n🔍 6. Key implementation checks\n')
+
+check(
+  'main.ts calls initDb',
+  fileContains('electron/main.ts', 'initDb'),
+  'main.ts must call initDb() during startup'
+)
+
+check(
+  'main.ts calls registerIpcHandlers',
+  fileContains('electron/main.ts', 'registerIpcHandlers'),
+  'main.ts must call registerIpcHandlers()'
+)
+
+check(
+  'ipc-channels.ts exports IPC_CHANNELS',
+  fileContains('shared/ipc-channels.ts', 'IPC_CHANNELS'),
+  'shared/ipc-channels.ts must export IPC_CHANNELS'
+)
+
+check(
+  'router.tsx exports router',
+  fileContains('src/app/router.tsx', 'export') && fileContains('src/app/router.tsx', 'createHashRouter'),
+  'src/app/router.tsx must export a router created with createHashRouter'
+)
+
+const storeFiles = [
+  'src/stores/auth.store.ts',
+  'src/stores/alumni.store.ts',
+  'src/stores/analytics.store.ts',
+  'src/stores/profiling.store.ts',
+  'src/stores/settings.store.ts',
+  'src/stores/sync.store.ts',
+  'src/stores/ui.store.ts'
+]
+
+for (const s of storeFiles) {
+  check(`store: ${s}`, fileNotEmpty(s), `Store ${s} is empty — implement it`)
+}
+
+const routeDirs = [
+  'src/routes/login',
+  'src/routes/dashboard',
+  'src/routes/alumni',
+  'src/routes/profiling',
+  'src/routes/sync',
+  'src/routes/email',
+  'src/routes/reports',
+  'src/routes/settings',
+  'src/routes/help',
+  'src/routes/about'
+]
+
+for (const r of routeDirs) {
+  const idx = path.join(r, 'index.tsx')
+  check(`route: ${idx}`, fileNotEmpty(idx), `Route page ${idx} is empty — implement it`)
+}
+
+// ─── 7. Build output check ───
+console.log('\n🔍 7. Build output (run pnpm build first)\n')
 
 check('out/main/index.js', fileExists('out/main/index.js'), 'Run: pnpm build')
 check('out/preload/index.js', fileExists('out/preload/index.js'), 'Run: pnpm build')
@@ -184,8 +244,8 @@ if (fileExists('out/main/index.js')) {
   )
 }
 
-// ─── 7. Project structure ───
-console.log('\n🔍 7. Project structure\n')
+// ─── 8. Project structure ───
+console.log('\n🔍 8. Project structure\n')
 
 const requiredDirs = [
   'electron',

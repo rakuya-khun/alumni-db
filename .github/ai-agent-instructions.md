@@ -7,7 +7,9 @@
 
 ## 1. Project Context
 
-**Alumni DB** is an offline-first Electron desktop application for managing alumni tracer study data at an engineering college. It serves 4 user roles:
+**Alumni DB** is an offline-first Electron desktop application for managing alumni tracer study data at **Southern Luzon State University (SLSU), College of Engineering**. It supports **PTC-ACBET accreditation by 2027** via Outcome-Based Education (OBE) evaluation.
+
+It serves 4 user roles:
 
 | Role | Scope | Admin Access |
 |------|-------|-------------|
@@ -16,9 +18,31 @@
 | **CpE Chair** | CpE data only | Preferences only |
 | **EE Chair** | EE data only | Preferences only |
 
-The app has **9 features**: Login & Accounts, Dashboard, Alumni Directory, Alumni Profiling, Reports & Export, Data Sync, Email, Settings, About.
+The app has **10 features**: Login & Accounts, Dashboard, Alumni Directory, Alumni Profiling, Reports & Export, Data Sync, Email, Settings, Help, About.
 
-**Key constraint:** The primary users are faculty members (Dean and Chairpersons) who may not be tech-savvy. All UIs should be clear, simple, and well-labeled.
+**Key constraints:**
+- Primary users are faculty members (Dean and Chairpersons) who may not be tech-savvy. All UIs should be clear, simple, and well-labeled.
+- Only alumni who graduated **2018 or later** (5-year post-graduation evaluation window). Enforce `year_graduated >= 2018` in Zod schemas and the service layer.
+
+### 4 OBE KPIs (Key Performance Indicators)
+
+1. **% Board Passers** — alumni who passed the PRC licensure exam
+2. **% Employed** — alumni who are currently employed
+3. **% Field-Related** — alumni employed in their field of study
+4. **% Supervisory/Managerial** — alumni in supervisory+ positions (CpE uses 6-tier job classification; CE/EE use Yes/No)
+
+### Questionnaire Structure
+
+All 3 programs (CE, CpE, EE) share an identical **7-section** Google Form with ~42 questions:
+1. Personal Information
+2. Educational Background
+3. Employment Details
+4. Competency Assessment (9 Likert items, 1–5 scale)
+5. Curriculum Relevance (1–5 scale)
+6. Professional Development
+7. Challenges & Recommendations
+
+**Program-specific differences:** professional titles, industry sector options, specialization lists, job classification tiers. See `docs/technical/data-dictionary.md` for the full ~58-column mapping.
 
 ---
 
@@ -71,6 +95,17 @@ Launch → Login Screen → Enter Credentials
 - Alumni data lives in BOTH local DB and Sheets (synced)
 - Accounts live ONLY in Sheets + encrypted local cache (never in sql.js)
 - Settings live ONLY in local DB (never in Sheets)
+
+### Sync Composite Key
+
+Records are matched between local DB and Google Sheets using: `full_name + program + year_graduated`
+
+### 4 Sync Modes
+
+1. **Pull** — Sheets → local DB
+2. **Push** — local DB → Sheets
+3. **Full Sync** — Pull → resolve conflicts → Push
+4. **Auto-Sync** — interval-based automatic full sync, pauses on conflict or offline
 
 ---
 
@@ -198,25 +233,130 @@ Every form in the application must have comprehensive Zod validation:
 - Toggle: `dark` class on `<html>` element
 - Persisted: `settings` table → `dark_mode` key
 - All components must include `dark:` variants for backgrounds, text, borders
-- UI store: `ui.store.ts` tracks active theme
 
 ---
 
-## 9. Documentation Reference
+## 9. Layout & Component Generation
 
-| Topic | File |
-|-------|------|
-| Tech stack & requirements | `docs/technical/overview.md` |
-| Project structure & architecture | `docs/technical/architecture.md` |
-| Database schema & SQL patterns | `docs/technical/database.md` |
-| Field mapping (questionnaire → DB) | `docs/technical/data-dictionary.md` |
-| System flowcharts (10 modules) | `docs/technical/alumni-db-flowcharts.md` |
-| Client requirements | `docs/technical/proposed_sitemap_by_client.md` |
-| Feature docs | `docs/features/*.md` |
+The UI adapts the **Donezo** project management dashboard template. When generating components:
+
+### Shell Structure
+
+Every authenticated page renders inside `AppLayout` which provides:
+- **Fixed sidebar** (`src/layouts/sidebar.tsx`): `w-64` expanded / `w-16` collapsed. 4 nav groups: MENU → ALUMNI → TOOLS → SYSTEM. Logout at bottom.
+- **Fixed top bar** (`src/layouts/top-bar.tsx`): Global search, notification bell (pending sync count), user avatar + name + role badge.
+- **Main content area**: Scrollable, `bg-surface-secondary`, cards inside.
+
+### Component Style Rules
+
+| Element | Pattern |
+|---------|---------|
+| All cards | `rounded-xl border bg-card shadow-sm p-6` |
+| Highlighted stat card | `rounded-xl bg-primary text-primary-foreground p-6 shadow-sm` |
+| Stat card row | `grid grid-cols-4 gap-4` |
+| Page header | `flex items-center justify-between mb-6` — title left, actions right |
+| Data tables | Full-width card wrapper, `<table>` with sort headers |
+| Form sections | Card per section, vertical stack |
+
+### Color Usage
+
+- **Always use semantic Tailwind classes** that reference CSS custom properties: `bg-primary`, `text-sidebar-text`, `bg-surface-secondary`, `bg-card`, `border-card-border`
+- **Never use raw Tailwind color values** like `bg-red-800` or `text-gray-500` — these break when the color palette is swapped
+- **Status colors** are OK as raw Tailwind: `text-green-500` for success, `text-red-500` for error, etc. (or use `text-success`, `text-error` from tokens)
+- **Brand color is Maroon #9B2335** — accent values are `--color-accent: 155 35 53`, `--color-accent-light: 192 75 92`
+
+### UX Priority: Non-IT Faculty Users
+
+Users are non-technical. **High UI/UX score is a grading criterion.** When generating ANY component:
+
+- Buttons: `h-10 px-6` minimum, always with text labels (not icon-only)
+- Plain language in all UI text — "Upload changes" not "Push", "Spreadsheet" not "API"
+- Confirmation dialogs on every destructive action with clear consequence description
+- Visual feedback always: loading spinners → success toasts or error messages with recovery steps
+- Generous spacing: `gap-4`+, `p-6` padding, `mb-6` between sections
+- Status indicators: color + icon + text (never color-alone for accessibility)
+- Error messages must include "what to do next" guidance
+- See `docs/FINAL-IMPLEMENTATION-PLAN.md` § "UX Guidelines for Non-IT Faculty Users" for full checklist
+
+### Icon Library
+
+- **Recommended:** `lucide-react` (not yet installed — run `pnpm add lucide-react` first)
+- Import pattern: `import { LayoutDashboard, Users, RefreshCw } from 'lucide-react'`
+- Sidebar nav items, stat cards, action buttons all use icons
 
 ---
 
-## 10. Quick Reference
+## 10. Current Codebase Status
+
+> **~95% of files are empty scaffolds (0 bytes).** Only config files have content.
+
+### What's Working
+
+- All 12 build/config files are verified correct (electron.vite.config, electron-builder.yml, 3 tsconfigs, tailwind, postcss, package.json, index.html, preload.ts, main.tsx, globals.css)
+- `electron/preload.ts` has a working IPC bridge
+- `src/main.tsx` has a working React entry point
+- All dependencies are installed in `node_modules/`
+
+### What Needs Enhancement (Has Content, Incomplete)
+
+- `electron/main.ts` — bare `createWindow()` only. Needs: `setupErrorHandlers()` → `initDb()` → `registerIpcHandlers()` → `createWindow()`
+- `src/App.tsx` — placeholder div. Needs: router + theme provider
+- `tailwind.config.ts` — needs extended `theme.colors` with CSS variable references
+- `src/styles/globals.css` — needs CSS custom properties (design tokens) added
+
+### What's Empty (All 0 Bytes)
+
+`electron/config/` (3), `electron/database/` (9), `electron/integrations/` (6), `electron/ipc/` (10), `electron/services/` (10), `electron/types/` (3), `electron/utils/` (5), `shared/types/` (6+), `shared/schemas/` (4+), `src/stores/` (7), `src/app/` (4), `src/routes/` (~128 files across 9 subdirs), `src/layouts/` (3), `src/lib/` (3), `src/data/` (1), `src/hooks/` (5), `src/types/` (7), `src/contexts/` (1+)
+
+---
+
+## 11. Implementation Plan Reference
+
+**Always consult `docs/FINAL-IMPLEMENTATION-PLAN.md` before implementing any feature.** It contains:
+
+- **229 items** across **12 phases** with exact file paths, component names, and responsibilities
+- Phase-by-phase build order (Foundation → Main Process → DB → IPC → Services → Types/Stores → Layout → Pages → Tests)
+- The complete route tree with every component, hook, schema, and type listed per page
+- Design token values (CSS custom properties for light + dark mode)
+- Tailwind config extensions
+- Asset swap instructions for when logo/colors arrive
+
+### Phase Order (Must Follow)
+
+1. Foundation: error handling, config, logger (`electron/config/`, `electron/utils/`)
+2. Main process: `electron/main.ts` lifecycle
+3. Database: sql.js init, schema, repositories (`electron/database/`)
+4. IPC: channels + handler registration (`shared/ipc-channels.ts`, `electron/ipc/`)
+5. Services + Integrations (`electron/services/`, `electron/integrations/`)
+6. Shared types, Zod schemas, Zustand stores, hooks (`shared/`, `src/stores/`, `src/hooks/`)
+7. Theming, layout shell, router (`src/styles/`, `src/layouts/`, `src/app/`)
+8. Login + Dashboard pages
+9. Alumni Directory + Profiling pages
+10. Sync + Email + Reports pages
+11. Settings + Help + About pages
+12. Smoke tests + build verification
+
+---
+
+## 12. Resolved Design Decisions
+
+These decisions were made during project planning. Do NOT revisit them:
+
+| Decision | Resolution |
+|----------|------------|
+| System Admin role | **No** — Dean handles all admin functions |
+| Research/Project Outputs fields | **Not included** — not formalized into questionnaire questions |
+| Micro-Credentials fields | **Not included** — docs win over client paper proposal |
+| Community & Industry Engagement fields | **Not included** — docs win over client paper proposal |
+| Number of sync modes | **4** — Pull, Push, Full Sync, Auto-Sync Timer |
+| Dashboard path | `/` not `/dashboard` |
+| Help page | **Separate route** `/help` with 3 tabs (User Manual, FAQ, Troubleshooting) — distinct from `/about` |
+| Color palette | **Maroon #9B2335** — SLSU College of Engineering brand. CSS vars finalized. Only logo asset pending |
+| Logo | **Text fallback** "Alumni DB" until client provides image |
+
+---
+
+## 13. Quick Reference
 
 ### Programs & Their Abbreviations
 
@@ -242,3 +382,18 @@ Every form in the application must have comprehensive Zod validation:
 | `pending` | Created/edited locally, not yet pushed to Sheets |
 | `synced` | In sync with Google Sheets |
 | `conflict` | Differs from Sheets, needs manual resolution |
+
+### Documentation Map
+
+| Topic | File |
+|-------|------|
+| **Implementation Plan (START HERE)** | `docs/FINAL-IMPLEMENTATION-PLAN.md` |
+| Original gap analysis | `docs/IMPROVEMENT-PLAN.md` |
+| Tech stack & requirements | `docs/technical/overview.md` |
+| Architecture & data flow | `docs/technical/architecture.md` |
+| Database schema & SQL | `docs/technical/database.md` |
+| Field mapping (~58 cols) | `docs/technical/data-dictionary.md` |
+| System flowcharts | `docs/technical/alumni-db-flowcharts.md` |
+| Feature docs | `docs/features/*.md` |
+| Client thesis (extracted) | `docs/client/pdf-extracted.txt` |
+| Client questionnaires | `docs/client/*.docx` |
