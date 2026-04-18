@@ -36,7 +36,9 @@ export const IPC_CHANNELS = {
   EXPORT: {
     PDF: 'export:pdf',
     DOCX: 'export:docx',
-    EXCEL: 'export:excel'
+    EXCEL: 'export:excel',
+    DASHBOARD_PDF: 'export:dashboardPdf',
+    DASHBOARD_DOCX: 'export:dashboardDocx'
   },
   EMAIL: {
     SEND: 'email:send',

@@ -4,24 +4,31 @@ import { logger } from '../utils/logger'
 import { emailService } from '../services/email.service'
 import { alumniService } from '../services/alumni.service'
 import { settingsService } from '../services/settings.service'
+import { scopeFilters } from '../utils/rbac'
+import { z } from 'zod'
+
+const emailSendSchema = z.object({
+  subject: z.string().min(1, 'Subject is required').max(500),
+  body: z.string().min(1, 'Body is required').max(50000),
+  recipientFilters: z.record(z.unknown()).optional(),
+  recipients: z.array(z.string().email()).optional(),
+  includeGformLink: z.boolean().optional(),
+  gformLink: z.string().url().optional(),
+})
 
 const CH = IPC_CHANNELS.EMAIL
 
 export function registerEmailHandlers(): void {
-  ipcMain.handle(CH.SEND, async (_event, payload: {
-    subject: string
-    body: string
-    recipientFilters?: Record<string, unknown>
-    recipients?: string[]
-    includeGformLink?: boolean
-    gformLink?: string
-  }) => {
+  ipcMain.handle(CH.SEND, async (_event, payload: Record<string, unknown>) => {
     try {
+      const validated = emailSendSchema.parse(payload)
+
       // Resolve recipients: explicit array or query from filters
-      let recipients = payload.recipients
+      let recipients = validated.recipients
       if (!recipients || recipients.length === 0) {
-        if (payload.recipientFilters) {
-          const alumni = await alumniService.getAll(payload.recipientFilters)
+        if (validated.recipientFilters) {
+          const scoped = scopeFilters(validated.recipientFilters)
+          const alumni = await alumniService.getAll(scoped)
           recipients = alumni
             .map((a) => a.gmail_address as string)
             .filter(Boolean)
@@ -32,8 +39,8 @@ export function registerEmailHandlers(): void {
       }
 
       // Resolve gformLink from settings if requested
-      let gformLink = payload.gformLink
-      if (payload.includeGformLink && !gformLink) {
+      let gformLink = validated.gformLink
+      if (validated.includeGformLink && !gformLink) {
         // Use CE form URL as the default link (or pick by program filter if available)
         gformLink = settingsService.get('gform_url_ce')
           || settingsService.get('gform_url_cpe')
@@ -42,8 +49,8 @@ export function registerEmailHandlers(): void {
       }
 
       const result = await emailService.send({
-        subject: payload.subject,
-        body: payload.body,
+        subject: validated.subject,
+        body: validated.body,
         recipients,
         gformLink
       })

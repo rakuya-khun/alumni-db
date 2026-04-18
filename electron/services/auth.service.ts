@@ -1,31 +1,10 @@
-import * as bcrypt from 'bcryptjs'
+﻿import * as bcrypt from 'bcryptjs'
 import { logger } from '../utils/logger'
 import { isOnline } from '../utils/network'
 import { encryptToFile, decryptFromFile } from '../utils/crypto'
 import { getAuthCachePath } from '../config/paths'
 import { MAX_LOGIN_ATTEMPTS, LOCKOUT_DURATION_MS, ROLE_PROGRAMS } from '../config/constants'
-
-interface UserSession {
-  username: string
-  role: string
-  fullName: string
-  accessiblePrograms: string[]
-}
-
-interface AuthResult {
-  session: UserSession
-  isOffline: boolean
-}
-
-interface AccountEntry {
-  username: string
-  password_hash: string
-  role: string
-  full_name: string
-  is_active: boolean
-  created_at: string
-  last_login: string
-}
+import type { UserSession, AuthResult, CachedAccount } from '../../shared/types/auth.types'
 
 interface LockoutState {
   attempts: number
@@ -43,7 +22,7 @@ const ROLE_DISPLAY: Record<string, string> = {
   ee_chair: 'EE Chair'
 }
 
-/** Reverse: display role → internal role */
+/** Reverse: display role â†’ internal role */
 const DISPLAY_TO_ROLE: Record<string, string> = {
   'dean': 'dean',
   'ce chair': 'ce_chair',
@@ -56,14 +35,62 @@ function normalizeRole(role: string): string {
   const lower = role.toLowerCase()
   // Already internal format
   if (ROLE_DISPLAY[lower]) return lower
-  // Display format → internal
+  // Display format â†’ internal
   if (DISPLAY_TO_ROLE[lower]) return DISPLAY_TO_ROLE[lower]
   // Last resort: return as-is
   return role
 }
 
-// ── Dev seed account (offline bootstrap) ──────────────────────
-const DEV_ACCOUNT: AccountEntry = {
+// ── Seed accounts (offline bootstrap) ══════════════════════════
+/** Seed accounts for offline bootstrap. Passwords are hashed on first use. */
+const SEED_ACCOUNTS: CachedAccount[] = [
+  {
+    username: 'dean',
+    password_hash: '',
+    role: 'dean',
+    full_name: 'Dr. Maria Santos',
+    is_active: true,
+    created_at: '2025-01-01T00:00:00.000Z',
+    last_login: ''
+  },
+  {
+    username: 'ce_chair',
+    password_hash: '',
+    role: 'ce_chair',
+    full_name: 'Engr. Jose Cruz',
+    is_active: true,
+    created_at: '2025-01-01T00:00:00.000Z',
+    last_login: ''
+  },
+  {
+    username: 'cpe_chair',
+    password_hash: '',
+    role: 'cpe_chair',
+    full_name: 'Engr. Ana Reyes',
+    is_active: true,
+    created_at: '2025-01-01T00:00:00.000Z',
+    last_login: ''
+  },
+  {
+    username: 'ee_chair',
+    password_hash: '',
+    role: 'ee_chair',
+    full_name: 'Engr. Pedro Bautista',
+    is_active: true,
+    created_at: '2025-01-01T00:00:00.000Z',
+    last_login: ''
+  },
+]
+
+/** Default passwords for seed accounts (same as username for simplicity) */
+const SEED_PASSWORDS: Record<string, string> = {
+  dean: 'dean2026',
+  ce_chair: 'cechair2026',
+  cpe_chair: 'cpechair2026',
+  ee_chair: 'eechair2026',
+}
+
+const DEV_ACCOUNT: CachedAccount = {
   username: 'devadmin',
   // bcrypt hash of 'devadmin'
   password_hash: '$2a$10$Z3EoLM9yJ.kjAI651Kkx6.mliJZWv9R0woFwFvT91OKmetUPHq3x2',
@@ -74,12 +101,31 @@ const DEV_ACCOUNT: AccountEntry = {
   last_login: ''
 }
 
-/** Ensure an offline auth cache exists with at least the dev account */
+/** Ensure an offline auth cache exists with seed accounts */
 function ensureDevSeed(): void {
   const existing = readCachedAccounts()
-  if (existing && existing.length > 0) return
-  cacheAccounts([DEV_ACCOUNT])
-  logger.info('auth', 'Seeded dev account into offline auth cache')
+  if (existing && existing.length >= SEED_ACCOUNTS.length + 1) return // +1 for DEV_ACCOUNT
+
+  // Hash seed passwords (sync — only runs once on first launch)
+  const seeded: CachedAccount[] = SEED_ACCOUNTS.map((acc) => ({
+    ...acc,
+    password_hash: acc.password_hash || bcrypt.hashSync(SEED_PASSWORDS[acc.username] ?? acc.username, 10),
+  }))
+
+  // Always include DEV_ACCOUNT
+  seeded.push(DEV_ACCOUNT)
+
+  // Merge with existing cached accounts (don't overwrite accounts that already exist)
+  if (existing && existing.length > 0) {
+    const existingUsernames = new Set(existing.map((a) => a.username.toLowerCase()))
+    const newAccounts = seeded.filter((a) => !existingUsernames.has(a.username.toLowerCase()))
+    if (newAccounts.length === 0) return
+    cacheAccounts([...existing, ...newAccounts])
+    logger.info('auth', `Seeded ${newAccounts.length} new accounts into offline auth cache`)
+  } else {
+    cacheAccounts(seeded)
+    logger.info('auth', `Seeded ${seeded.length} accounts into offline auth cache`)
+  }
 }
 
 function getLockout(username: string): LockoutState {
@@ -118,7 +164,7 @@ function resetLockout(username: string): void {
 }
 
 /** Cache accounts locally for offline use */
-function cacheAccounts(accounts: AccountEntry[]): void {
+function cacheAccounts(accounts: CachedAccount[]): void {
   try {
     const cachePath = getAuthCachePath()
     encryptToFile(cachePath, JSON.stringify(accounts))
@@ -129,7 +175,7 @@ function cacheAccounts(accounts: AccountEntry[]): void {
 }
 
 /** Read cached accounts for offline auth */
-function readCachedAccounts(): AccountEntry[] | null {
+function readCachedAccounts(): CachedAccount[] | null {
   try {
     const cachePath = getAuthCachePath()
     const data = decryptFromFile(cachePath)
@@ -145,21 +191,38 @@ export const authService = {
     ensureDevSeed()
     checkLockout(username)
 
-    let accounts: AccountEntry[] | null = null
+    let accounts: CachedAccount[] | null = null
     let usedOffline = false
 
     if (isOnline()) {
       try {
         const sheetsAccounts = await this.fetchAccountsFromSheets()
         if (sheetsAccounts && sheetsAccounts.length > 0) {
-          // Merge dev seed if not already in Sheets accounts
-          const hasDevAdmin = sheetsAccounts.some(
-            (a) => a.username.toLowerCase() === DEV_ACCOUNT.username.toLowerCase()
-          )
-          accounts = hasDevAdmin ? sheetsAccounts : [...sheetsAccounts, DEV_ACCOUNT]
+          // Merge seed accounts that aren't in Sheets
+          const sheetsUsernames = new Set(sheetsAccounts.map((a) => a.username.toLowerCase()))
+          const allSeeds = [...SEED_ACCOUNTS.map((acc) => ({
+            ...acc,
+            password_hash: acc.password_hash || bcrypt.hashSync(SEED_PASSWORDS[acc.username] ?? acc.username, 10),
+          })), DEV_ACCOUNT]
+          const missingSeeds = allSeeds.filter((s) => !sheetsUsernames.has(s.username.toLowerCase()))
+          // Push missing seeds to Sheets so other machines can use them
+          if (missingSeeds.length > 0) {
+            this.pushSeedsToSheets(missingSeeds).catch((err) => {
+              logger.warn('auth', 'Failed to push seed accounts to Sheets', { error: (err as Error).message })
+            })
+          }
+          accounts = missingSeeds.length > 0 ? [...sheetsAccounts, ...missingSeeds] : sheetsAccounts
           cacheAccounts(accounts)
         } else {
-          logger.info('auth', 'Accounts tab is empty or missing — using cached accounts')
+          logger.info('auth', 'Accounts tab is empty or missing â€" using cached accounts')
+          // Accounts tab is empty — push all seeds there
+          const allSeeds = [...SEED_ACCOUNTS.map((acc) => ({
+            ...acc,
+            password_hash: acc.password_hash || bcrypt.hashSync(SEED_PASSWORDS[acc.username] ?? acc.username, 10),
+          })), DEV_ACCOUNT]
+          this.pushSeedsToSheets(allSeeds).catch((err) => {
+            logger.warn('auth', 'Failed to push seed accounts to empty Sheets tab', { error: (err as Error).message })
+          })
         }
       } catch (error) {
         logger.warn('auth', 'Online auth failed, falling back to cache', {
@@ -231,7 +294,7 @@ export const authService = {
     return currentSession
   },
 
-  async getAccounts(): Promise<AccountEntry[]> {
+  async getAccounts(): Promise<CachedAccount[]> {
     if (isOnline()) {
       try {
         const accounts = await this.fetchAccountsFromSheets()
@@ -285,7 +348,7 @@ export const authService = {
     logger.info('auth', `Account updated: ${payload.username}`)
   },
 
-  async fetchAccountsFromSheets(): Promise<AccountEntry[]> {
+  async fetchAccountsFromSheets(): Promise<CachedAccount[]> {
     const { accountsAdapter } = await import('../integrations/google-sheets/accounts.adapter')
     return accountsAdapter.fetchAccounts()
   },
@@ -296,6 +359,18 @@ export const authService = {
       await accountsAdapter.updateLastLogin(username, new Date().toISOString())
     } catch (error) {
       logger.warn('auth', 'Failed to update last_login', { error: (error as Error).message })
+    }
+  },
+
+  async pushSeedsToSheets(seeds: CachedAccount[]): Promise<void> {
+    const { accountsAdapter } = await import('../integrations/google-sheets/accounts.adapter')
+    for (const seed of seeds) {
+      try {
+        await accountsAdapter.createAccount(seed)
+        logger.info('auth', `Pushed seed account to Sheets: ${seed.username}`)
+      } catch (error) {
+        logger.warn('auth', `Failed to push seed ${seed.username} to Sheets`, { error: (error as Error).message })
+      }
     }
   }
 }

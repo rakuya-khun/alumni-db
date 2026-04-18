@@ -16,6 +16,7 @@ export interface SurveyTableProps {
   loading?: boolean
   showWeightedMean?: boolean
   headerSlot?: React.ReactNode
+  totalLabel?: string
 }
 
 export interface ChartDataPoint {

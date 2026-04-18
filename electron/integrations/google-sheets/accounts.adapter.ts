@@ -1,17 +1,8 @@
-import { createSheetsClient } from './client'
+﻿import { createSheetsClient } from './client'
 import { ACCOUNTS_TAB_NAME } from '../../config/constants'
 import { logger } from '../../utils/logger'
 import { settingsService } from '../../services/settings.service'
-
-interface AccountEntry {
-  username: string
-  password_hash: string
-  role: string
-  full_name: string
-  is_active: boolean
-  created_at: string
-  last_login: string
-}
+import type { CachedAccount } from '../../../shared/types/auth.types'
 
 function getConfig() {
   // Use dynamic import-like pattern but lazily access the already-loaded module
@@ -31,7 +22,7 @@ function getConfig() {
  * username | password_hash | role | full_name | is_active | created_at | last_login
  */
 export const accountsAdapter = {
-  async fetchAccounts(): Promise<AccountEntry[]> {
+  async fetchAccounts(): Promise<CachedAccount[]> {
     const { sheets, spreadsheetId } = getConfig()
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId,
@@ -52,7 +43,7 @@ export const accountsAdapter = {
     }))
   },
 
-  async createAccount(account: AccountEntry): Promise<void> {
+  async createAccount(account: CachedAccount): Promise<void> {
     const { sheets, spreadsheetId } = getConfig()
     await sheets.spreadsheets.values.append({
       spreadsheetId,

@@ -16,6 +16,7 @@ const ALLOWED_CHANNELS = [
   'profiling:getProfile', 'profiling:getHistory', 'profiling:getSnapshot',
   // Export
   'export:pdf', 'export:docx', 'export:excel',
+  'export:dashboardPdf', 'export:dashboardDocx',
   // Email
   'email:send', 'email:getHistory', 'email:getReceived', 'email:testConnection',
   // Sync

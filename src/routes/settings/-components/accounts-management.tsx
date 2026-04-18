@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Plus, Edit2, UserX, UserCheck } from 'lucide-react'
 import { useAccounts } from '../-hooks/use-accounts'
 import { AccountFormDialog } from './account-form-dialog'
-import type { AccountEntry } from '../../../../shared/types/settings.types'
+import type { AccountEntry } from '../../../../shared/types/auth.types'
 
 export function AccountsManagement() {
   const { accounts, loading, createAccount, updateAccount } = useAccounts()

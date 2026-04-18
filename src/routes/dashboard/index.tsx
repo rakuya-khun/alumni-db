@@ -1,7 +1,11 @@
-import { Loader2, RefreshCw } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { Loader2, RefreshCw, Download, FileText, FileSpreadsheet } from 'lucide-react'
 import { useAuth } from '../../hooks/use-auth'
+import { useToast } from '../../hooks/use-toast'
+import { ipcClient } from '../../data/ipc-client'
 import { useDashboardStats } from './-hooks/use-dashboard-stats'
 import { useSurveyAnalytics } from './-hooks/use-survey-analytics'
+import { DashboardFilters, type DashboardFilterValues } from './-components/dashboard-filters'
 import { TotalResponsesCard } from './-components/total-responses-card'
 import { ProgramRespondentBoxes } from './-components/program-respondent-boxes'
 import { BoardPassersCard } from './-components/board-passers-card'
@@ -19,31 +23,122 @@ import { ProgramDistChart } from './-components/program-dist-chart'
 import { YearTrendChart } from './-components/year-trend-chart'
 import { EmploymentChart } from './-components/employment-chart'
 import { RecentActivity } from './-components/recent-activity'
+import { ProfessionalTitleTable } from './-components/professional-title-table'
+import { SpecializationTable } from './-components/specialization-table'
+import { CompetenciesLearnedTable } from './-components/competencies-learned-table'
 
 export default function DashboardPage() {
   const { fullName, role } = useAuth()
-  const { stats, loading: statsLoading, refresh } = useDashboardStats()
-  const { getTable, weightedMeans, loading: surveyLoading } = useSurveyAnalytics()
+  const [dashFilters, setDashFilters] = useState<DashboardFilterValues>({
+    programs: [],
+    yearFrom: undefined,
+    yearTo: undefined,
+  })
+
+  const extraFilters = {
+    programs: dashFilters.programs.length > 0 ? dashFilters.programs : undefined,
+    yearFrom: dashFilters.yearFrom,
+    yearTo: dashFilters.yearTo,
+  }
+
+  const { stats, loading: statsLoading, refresh } = useDashboardStats(extraFilters)
+  const { getTable, weightedMeans, loading: surveyLoading } = useSurveyAnalytics(extraFilters)
+  const [exportOpen, setExportOpen] = useState(false)
+  const [exporting, setExporting] = useState(false)
+  const exportRef = useRef<HTMLDivElement>(null)
+  const toast = useToast()
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (exportRef.current && !exportRef.current.contains(e.target as Node)) {
+        setExportOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  const handleDashboardExport = async (format: 'pdf' | 'docx') => {
+    setExporting(true)
+    setExportOpen(false)
+    try {
+      const filters = {
+        programs: dashFilters.programs.length > 0 ? dashFilters.programs : undefined,
+        yearFrom: dashFilters.yearFrom,
+        yearTo: dashFilters.yearTo,
+      }
+      if (format === 'pdf') {
+        await ipcClient.export.dashboardPdf(filters)
+      } else {
+        await ipcClient.export.dashboardDocx(filters)
+      }
+      toast.success('Export complete', 'Dashboard summary saved successfully')
+    } catch (err) {
+      toast.error('Export failed', err instanceof Error ? err.message : 'Unknown error')
+    } finally {
+      setExporting(false)
+    }
+  }
 
   return (
     <div className="space-y-6">
       {/* Page Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-text-primary">Dashboard</h1>
-          <p className="mt-1 text-sm text-text-secondary">
-            Welcome back, {fullName} — {role}
-          </p>
+        <div className="flex items-center gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-text-primary">Dashboard</h1>
+            <p className="mt-1 text-sm text-text-secondary">
+              Welcome back, {fullName} — {role}
+            </p>
+          </div>
         </div>
-        <button
-          onClick={() => refresh()}
-          disabled={statsLoading}
-          className="inline-flex h-10 items-center gap-2 rounded-lg border border-card-border bg-card px-4 text-sm font-medium text-text-primary shadow-sm hover:bg-surface-secondary disabled:opacity-50"
-        >
-          <RefreshCw className={`h-4 w-4 ${statsLoading ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <div ref={exportRef} className="relative">
+            <button
+              onClick={() => setExportOpen(!exportOpen)}
+              disabled={exporting || statsLoading}
+              className="inline-flex h-10 items-center gap-2 rounded-lg border border-card-border bg-card px-4 text-sm font-medium text-text-primary shadow-sm hover:bg-surface-secondary disabled:opacity-50"
+            >
+              {exporting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
+              Export Dashboard
+            </button>
+            {exportOpen && (
+              <div className="absolute right-0 z-10 mt-1 w-52 rounded-lg border border-card-border bg-card py-1 shadow-lg">
+                <button
+                  onClick={() => handleDashboardExport('pdf')}
+                  className="flex w-full items-center gap-2 px-4 py-2 text-sm text-text-primary hover:bg-surface-secondary"
+                >
+                  <FileText className="h-4 w-4 text-error" />
+                  Export as PDF
+                </button>
+                <button
+                  onClick={() => handleDashboardExport('docx')}
+                  className="flex w-full items-center gap-2 px-4 py-2 text-sm text-text-primary hover:bg-surface-secondary"
+                >
+                  <FileSpreadsheet className="h-4 w-4 text-info" />
+                  Export as Word
+                </button>
+              </div>
+            )}
+          </div>
+          <button
+            onClick={() => refresh()}
+            disabled={statsLoading}
+            className="inline-flex h-10 items-center gap-2 rounded-lg border border-card-border bg-card px-4 text-sm font-medium text-text-primary shadow-sm hover:bg-surface-secondary disabled:opacity-50"
+          >
+            <RefreshCw className={`h-4 w-4 ${statsLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+        </div>
       </div>
+
+      {/* Dashboard Filters */}
+      <DashboardFilters filters={dashFilters} onChange={setDashFilters} />
 
       {statsLoading && !stats ? (
         <div className="flex h-64 items-center justify-center">
@@ -90,49 +185,86 @@ export default function DashboardPage() {
             <RecentActivity />
           </div>
 
-          {/* Row 5: Survey Tables */}
-          <div className="space-y-4">
+          {/* Survey Analysis Section */}
+          <div className="space-y-6">
             <h2 className="text-lg font-semibold text-text-primary">Survey Analysis</h2>
 
-            <CurriculumRelevanceTable
-              data={getTable('curriculum_relevance')}
-              loading={surveyLoading}
-            />
+            {/* PROFESSIONAL COMPETENCE */}
+            <div className="space-y-4">
+              <h3 className="text-base font-semibold text-text-secondary uppercase tracking-wide">
+                Professional Competence
+              </h3>
 
-            <CompetenciesTable
-              data={getTable('competencies')}
-              weightedMeans={weightedMeans}
-              loading={surveyLoading}
-            />
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                <CurriculumRelevanceTable
+                  data={getTable('curriculum_relevance')}
+                  loading={surveyLoading}
+                />
+                <ProfessionalTitleTable
+                  data={getTable('professional_title')}
+                  loading={surveyLoading}
+                />
+              </div>
 
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-              <AdvanceStudiesTable
-                data={getTable('advanced_study_reason')}
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                <AdvanceStudiesTable
+                  data={getTable('advanced_study_reason')}
+                  loading={surveyLoading}
+                />
+                <SpecializationTable
+                  data={getTable('specialization')}
+                  loading={surveyLoading}
+                />
+              </div>
+            </div>
+
+            {/* PERSONAL AND PROFESSIONAL UNDERTAKINGS */}
+            <div className="space-y-4">
+              <h3 className="text-base font-semibold text-text-secondary uppercase tracking-wide">
+                Personal and Professional Undertakings
+              </h3>
+
+              <CompetenciesTable
+                data={getTable('competencies')}
+                weightedMeans={weightedMeans}
                 loading={surveyLoading}
               />
+
+              <CompetenciesLearnedTable
+                data={getTable('useful_competencies')}
+                loading={surveyLoading}
+              />
+            </div>
+
+            {/* CAREER PATH */}
+            <div className="space-y-4">
+              <h3 className="text-base font-semibold text-text-secondary uppercase tracking-wide">
+                Career Path
+              </h3>
+
               <EmploymentStatusTable
                 data={getTable('employment_status')}
                 loading={surveyLoading}
               />
-            </div>
 
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-              <WorkAssignmentTable
-                data={getTable('work_region')}
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                <WorkAssignmentTable
+                  data={getTable('work_region')}
+                  loading={surveyLoading}
+                />
+                <IndustrySectorTable
+                  data={getTable('industry_sector')}
+                  loading={surveyLoading}
+                />
+              </div>
+
+              <FirstJobTable
+                timeData={getTable('time_to_first_job')}
+                methodData={getTable('first_job_method')}
+                challengesData={getTable('job_challenges')}
                 loading={surveyLoading}
               />
-              <IndustrySectorTable
-                data={getTable('industry_sector')}
-                loading={surveyLoading}
-              />
             </div>
-
-            <FirstJobTable
-              timeData={getTable('time_to_first_job')}
-              methodData={getTable('first_job_method')}
-              challengesData={getTable('job_challenges')}
-              loading={surveyLoading}
-            />
           </div>
 
 

@@ -32,6 +32,8 @@ export const useAuthStore = create<AuthState>((set) => ({
         isOffline: result.isOffline,
         loading: false,
       })
+      // Reload settings after login (they were cleared on logout)
+      useSettingsStore.getState().loadSettings()
     } catch (err) {
       set({ loading: false, error: (err as Error).message })
       throw err

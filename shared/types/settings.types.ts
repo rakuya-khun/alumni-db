@@ -20,12 +20,3 @@ export interface SettingsConfig {
   autoSync: boolean
   syncInterval: number
 }
-
-export interface AccountEntry {
-  username: string
-  role: string
-  fullName: string
-  isActive: boolean
-  createdAt: string
-  lastLogin: string
-}

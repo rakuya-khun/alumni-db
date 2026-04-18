@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog } from 'electron'
+import { app, BrowserWindow, Menu, dialog } from 'electron'
 import { join } from 'path'
 import { setupErrorHandlers } from './utils/error-handler'
 import { logger } from './utils/logger'
@@ -15,6 +15,8 @@ function createWindow(): void {
     minWidth: 1024,
     minHeight: 680,
     show: false,
+    icon: join(__dirname, '../../resources/icon.ico'),
+    autoHideMenuBar: true,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
@@ -46,6 +48,9 @@ function createWindow(): void {
 
 app.whenReady().then(async () => {
   logger.info('app', 'Application starting')
+
+  // Remove the default menu bar (File, Edit, View, Window, Help)
+  Menu.setApplicationMenu(null)
 
   try {
     // Phase 3: Initialize database (load or create alumni.db)

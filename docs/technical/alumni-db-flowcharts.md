@@ -1,8 +1,8 @@
 # Alumni DB — System Flowcharts
 
-> **Version:** v2.0.0
+> **Version:** v3.0.0
 > **Interactive HTML:** [alumni-db-flowcharts-v2-5.html](alumni-db-flowcharts-v2-5.html) — open in a browser for navigable, color-coded SVG diagrams.
-> **Description:** Modular flowcharts covering all 10 system flows of the Alumni DB Management System, aligned with role-based access for Dean and Program Chairpersons.
+> **Description:** Modular flowcharts covering all 10 system flows of the Alumni DB Management System, aligned with role-based access for Dean and Program Chairpersons. Updated to reflect dashboard export, ready-made email templates, chairperson sync access, and troubleshooting integration.
 
 ---
 
@@ -164,7 +164,7 @@ Accounts are stored in a dedicated **"Accounts" tab** within the same Google She
 
 ## 3. Analytic Dashboard
 
-**Purpose:** Role-filtered data loading, summary stat cards, percentage metrics, and frequency/weighted mean tables.
+**Purpose:** Role-filtered data loading, summary stat cards, percentage metrics, frequency/weighted mean tables, and optional PDF/DOCX export.
 
 ```mermaid
 flowchart TD
@@ -187,11 +187,24 @@ flowchart TD
     M --> R["Other Survey Tables"]
     N & O & P & Q & R --> S{{"Render Full Dashboard"}}
     S --> T[/"Display Charts & Tables"/]
-    T --> U([✅ Dashboard Displayed])
+    T --> U{Export Dashboard Data?}
+    U -- YES --> V{Select Export Format}
+    V -- PDF --> W{{"Generate Dashboard PDF"}}
+    V -- DOCX --> X{{"Generate Dashboard DOCX"}}
+    W --> Y[/"Download .pdf"/]
+    X --> Z[/"Download .docx"/]
+    Y & Z --> AA{Export Successful?}
+    AA -- YES --> AB([✅ Dashboard Complete])
+    AA -- NO --> AC[/"Show Error + Retry"/]
+    AC --> V
+    U -- NO --> AB
 
     style A fill:#06b6d4,color:#fff
-    style U fill:#10b981,color:#fff
+    style AB fill:#10b981,color:#fff
     style C fill:#8b5cf6,color:#fff
+    style U fill:#8b5cf6,color:#fff
+    style V fill:#8b5cf6,color:#fff
+    style AA fill:#8b5cf6,color:#fff
     style B fill:#f59e0b,color:#fff
     linkStyle 2 stroke:#ef4444
     linkStyle 3 stroke:#10b981
@@ -202,6 +215,38 @@ flowchart TD
 - **Role-Based Filter Applied First:** A Chairperson sees only their own program's statistics.
 - **Stat Cards (KPIs):** Total Responses, per-program counts, % Board Passers, % Employed, % Field-Related, % Supervisory.
 - **Survey Tables:** Frequency distribution and weighted mean (for Likert-scale data).
+- **Dashboard Export:** After viewing charts/tables, user can export the entire dashboard view as PDF or DOCX via the export dropdown button. Filters (program, year range) are passed to the export service.
+
+### Sub-Flow 3a: Dashboard Export Flow
+
+```mermaid
+flowchart TD
+    A([📊 Dashboard Export]) --> B[Click Export Dropdown]
+    B --> C{Select Format}
+    C -- PDF --> D{{"Collect Dashboard Filters"}}
+    C -- DOCX --> D
+    D --> E[/"Program, Year Range Filters Applied"/]
+    E --> F{{"Send to Export Service via IPC"}}
+    F --> G{Format?}
+    G -- PDF --> H{{"Generate PDF with Stats + Tables"}}
+    G -- DOCX --> I{{"Generate Styled Word Document"}}
+    H --> J{{"Open Save Dialog"}}
+    I --> J
+    J --> K[/"User Selects Save Location"/]
+    K --> L{Save Successful?}
+    L -- YES --> M[/"✅ Show Success Toast"/]
+    L -- NO --> N[/"Show Error Message"/]
+    M --> O([Return to Dashboard])
+    N --> O
+
+    style A fill:#06b6d4,color:#fff
+    style O fill:#10b981,color:#fff
+    style C fill:#8b5cf6,color:#fff
+    style G fill:#8b5cf6,color:#fff
+    style L fill:#8b5cf6,color:#fff
+    linkStyle 13 stroke:#10b981
+    linkStyle 14 stroke:#ef4444
+```
 
 ---
 
@@ -319,61 +364,61 @@ flowchart TD
 
 ## 6. Reports & Export
 
-**Purpose:** Export alumni data as PDF, DOCX, XLSX; filtered print; and print preview — all role-filtered.
+**Purpose:** Export alumni data as PDF, DOCX, XLSX — all role-filtered. Includes print option for current view.
 
 ```mermaid
 flowchart TD
     A([📄 Enter Reports & Export]) --> B{{"Apply Role-Based Filter"}}
     B --> C{Alumni Data Available?}
     C -- NO --> D[/"Show Empty State"/]
-    C -- YES --> E{Select Export Type}
+    C -- YES --> E["Apply Export Filters (Program, Year)"]
+    E --> F{Select Export Type}
 
-    E -- PDF --> F{{"Generate PDF (Stats + Directory)"}}
-    F --> G[/"Download .pdf"/]
+    F -- PDF --> G{{"Generate PDF (Stats + Directory)"}}
+    G --> H[/"Download .pdf"/]
 
-    E -- DOCX --> H{{"Generate Styled Word Document"}}
-    H --> I[/"Download .docx"/]
+    F -- DOCX --> I{{"Generate Styled Word Document"}}
+    I --> J[/"Download .docx"/]
 
-    E -- XLSX --> J{{"Export as Excel Workbook"}}
-    J --> K[/"Download .xlsx (Multi-Tab)"/]
+    F -- XLSX --> K{{"Export as Excel Workbook"}}
+    K --> L[/"Download .xlsx (Multi-Tab)"/]
 
-    E -- Filtered Print --> L["Select Filter Criteria"]
-    L --> M{{"Apply Filter & Generate"}}
-    M --> N[/"Download Filtered File"/]
+    F -- Print --> M[/"Print Current View"/]
+    M --> N{{"Render Print-Optimized Layout"}}
 
-    E -- Preview/Print --> O["Open Print Dialog"]
-    O --> P{{"Render Print-Optimized View"}}
-    P --> Q["Print or Cancel"]
+    H & J & L --> O{Export Successful?}
+    O -- YES --> P([✅ Return to Reports])
+    O -- NO --> Q[/"Show Error + Retry"/]
+    Q --> F
 
-    G & I & K & N & Q --> R{Export Successful?}
-    R -- YES --> S([✅ Return to Reports])
-    R -- NO --> T[/"Show Error + Retry"/]
-    T --> E
+    N --> P
 
     style A fill:#06b6d4,color:#fff
-    style S fill:#10b981,color:#fff
+    style P fill:#10b981,color:#fff
     style C fill:#8b5cf6,color:#fff
-    style E fill:#8b5cf6,color:#fff
-    style R fill:#8b5cf6,color:#fff
+    style F fill:#8b5cf6,color:#fff
+    style O fill:#8b5cf6,color:#fff
     style B fill:#f59e0b,color:#fff
     linkStyle 2 stroke:#ef4444
     linkStyle 3 stroke:#10b981
-    linkStyle 21 stroke:#10b981
-    linkStyle 22 stroke:#ef4444
-    linkStyle 23 stroke:#3b82f6,stroke-dasharray:5
+    linkStyle 16 stroke:#10b981
+    linkStyle 17 stroke:#ef4444
+    linkStyle 18 stroke:#3b82f6,stroke-dasharray:5
 ```
 
 ### Additional Details
 
 - **Role-Based Filter Applied First:** Chairpersons can only export their own program's data.
+- **3 Export Formats:** PDF, DOCX, XLSX — each as a card in the export grid.
+- **Print Option:** A separate "Print Current View" button triggers `window.print()` with a clean, full-width layout (sidebar/topbar hidden automatically).
 - **Excel Multi-Tab:** Data sheet, Filters Applied tab, Summary Statistics tab.
-- **Print Preview:** `@media print` optimized view.
+- **Preview Branch Removed:** The previous Print Preview/Preview export type has been consolidated into the simpler "Print Current View" action.
 
 ---
 
 ## 7. Data Synchronization
 
-**Purpose:** Internet check, unsaved change notification, 4 sync modes, pending changes, conflict resolution.
+**Purpose:** Internet check, unsaved change notification, 4 sync modes, pending changes, conflict resolution. **All roles can access this module — data is scoped to accessible programs.**
 
 ```mermaid
 flowchart TD
@@ -441,12 +486,13 @@ flowchart TD
 - **Unsaved Changes Notification:** Alerts user before syncing if local edits exist.
 - **Auto-Sync Timer:** Configurable interval. Pauses on conflicts.
 - **Conflict Resolution:** Manual — keep local, keep remote, or merge.
+- **All Roles Can Sync:** Both Dean and Chairpersons can access the Data Sync module. Data is automatically scoped — Chairpersons only sync their own program's records, while the Dean syncs all programs.
 
 ---
 
 ## 8. Sending Emails
 
-**Purpose:** Role-filtered recipients, GForm link decision, compose, send via SMTP, history tracking.
+**Purpose:** Role-filtered recipients, ready-made email templates, GForm link decision, compose, send via SMTP, history tracking.
 
 ```mermaid
 flowchart TD
@@ -454,7 +500,11 @@ flowchart TD
 
     B -- Compose --> C["Select Recipients - Role-Filtered"]
     C --> D["Filter By Program / Year"]
-    D --> E[/"Compose Email: Subject + Body"/]
+    D --> E2{Use Ready-Made Template?}
+    E2 -- YES --> E3["Select Template (4 Options)"]
+    E3 --> E4{{"Pre-fill Subject & Body from Template"}}
+    E4 --> E[/"Compose Email: Subject + Body"/]
+    E2 -- NO --> E
     E --> F{Include GForm Link?}
     F -- YES --> G{{"Attach GForm Link to Body"}}
     F -- NO --> H[Skip]
@@ -476,37 +526,76 @@ flowchart TD
     style A fill:#06b6d4,color:#fff
     style R fill:#10b981,color:#fff
     style B fill:#8b5cf6,color:#fff
+    style E2 fill:#8b5cf6,color:#fff
     style F fill:#8b5cf6,color:#fff
     style I fill:#8b5cf6,color:#fff
     style K fill:#8b5cf6,color:#fff
-    linkStyle 5 stroke:#10b981
-    linkStyle 6 stroke:#ef4444
-    linkStyle 9 stroke:#ef4444
-    linkStyle 10 stroke:#10b981
-    linkStyle 12 stroke:#10b981
-    linkStyle 13 stroke:#ef4444
-    linkStyle 14 stroke:#3b82f6,stroke-dasharray:5
 ```
 
 ### Additional Details
 
 - **Role-Based Recipients:** CE Chairperson can only email CE alumni.
+- **Ready-Made Templates:** 4 pre-built email templates (see Sub-Flow 8a below). Templates pre-fill the subject and body with appropriate content and template variables. User can edit before sending.
 - **GForm Link Decision:** Optional inclusion for survey reminders.
 - **Template Variables:** `{{fullName}}`, `{{program}}`, `{{yearGraduated}}`, etc.
 - **Email History:** Every batch send logged with delivery status.
+
+### Sub-Flow 8a: Email Template Selection
+
+The compose form includes a **"Use a Ready-Made Template"** button that reveals 4 template cards. Selecting one pre-fills the subject and body fields.
+
+```mermaid
+flowchart TD
+    A([📧 Select Email Template]) --> B{Choose Template}
+
+    B -- "Survey Invitation" --> C["Alumni Survey Invitation"]
+    C --> C1[/"Subject: Alumni Tracer Study — We Need Your Input"/]
+
+    B -- "Follow-Up" --> D["Survey Follow-Up Reminder"]
+    D --> D1[/"Subject: Reminder — Alumni Tracer Study"/]
+
+    B -- "Thank You" --> E["Thank You for Responding"]
+    E --> E1[/"Subject: Thank You for Completing the Alumni Survey"/]
+
+    B -- "General Update" --> F["General Alumni Update"]
+    F --> F1[/"Subject: Updates from the College of Engineering"/]
+
+    C1 & D1 & E1 & F1 --> G{{"Pre-fill Subject & Body"}}
+    G --> H[/"Template Variables Auto-Inserted"/]
+    H --> I["{{fullName}}, {{program}}, {{yearGraduated}}"]
+    I --> J{Edit Before Sending?}
+    J -- YES --> K[/"Modify Subject & Body"/]
+    J -- NO --> L[Proceed to Send]
+    K --> L
+    L --> M([📤 Continue to Send Flow])
+
+    style A fill:#06b6d4,color:#fff
+    style M fill:#10b981,color:#fff
+    style B fill:#8b5cf6,color:#fff
+    style J fill:#8b5cf6,color:#fff
+```
+
+**4 Ready-Made Templates:**
+
+| # | Template Name | Subject Line | Purpose |
+|---|--------------|-------------|---------|
+| 1 | Alumni Survey Invitation | Alumni Tracer Study — We Need Your Input, {{fullName}}! | Initial survey request to alumni |
+| 2 | Survey Follow-Up Reminder | Reminder: Alumni Tracer Study — Your Response Matters, {{fullName}} | Follow-up for non-responders |
+| 3 | Thank You for Responding | Thank You for Completing the Alumni Survey, {{fullName}}! | Post-survey appreciation |
+| 4 | General Alumni Update | Updates from the College of Engineering — {{program}} | Generic communication |
 
 ---
 
 ## 9. Settings
 
-**Purpose:** SMTP + Sheets configuration with test/retry loops, Dean-only management sections, and user preferences.
+**Purpose:** SMTP + Sheets configuration with test/retry loops, Dean-only management sections, user preferences, and clarification of Chairperson data sync access.
 
 ```mermaid
 flowchart TD
     A([⚙️ Enter Settings]) --> B{User Role?}
 
     B -- Dean --> C[All Sections Visible]
-    B -- Chairperson --> D[Preferences Only]
+    B -- Chairperson --> D["Preferences + Data Sync Access"]
 
     C --> E{Select Setting Type}
 
@@ -531,8 +620,10 @@ flowchart TD
 
     D --> T["Dark Mode Toggle"]
     D --> U["Display Preferences"]
+    D --> D2["Access Data Sync Module"]
+    D2 --> D3[/"Sync Own Program Data Only"/]
 
-    J & P & R & S & T & U --> V[Settings Saved & Applied]
+    J & P & R & S & T & U & D3 --> V[Settings Saved & Applied]
     V --> W([🏠 Return to Dashboard])
 
     style A fill:#06b6d4,color:#fff
@@ -555,39 +646,65 @@ flowchart TD
 
 | Section | Dean | Chairperson |
 |---------|------|-------------|
-| SMTP Configuration | ✅ Manage | ❌ View-only |
-| Spreadsheet Connection | ✅ Manage | ❌ View-only |
-| Sync & Database Info | ✅ Manage | ❌ View-only |
+| SMTP Configuration | ✅ Manage | ❌ Hidden |
+| Spreadsheet Connection | ✅ Manage | ❌ Hidden |
+| Sync & Database Info | ✅ Manage | ❌ Hidden |
 | Accounts Management | ✅ Manage | ❌ Hidden |
 | User Preferences | ✅ Manage | ✅ Manage |
+| Data Sync Module (separate route) | ✅ All Programs | ✅ Own Program Only |
+
+### Additional Details
+
+- **Chairperson Sync Access:** Chairpersons can perform sync operations (Pull/Push/Full Sync) through the **Data Sync module** (`/sync` route) for their own program's data. The Settings sync configuration (auto-sync interval, GForm link, etc.) remains Dean-only. The `/sync` route has no role guard — data scoping is applied at the query level via `accessiblePrograms`.
+- **Section Visibility:** For Chairpersons, the SMTP, Spreadsheet, Sync/DB Info, and Accounts sections are **completely hidden** (not view-only) — only the Preferences section is shown.
 
 ---
 
 ## 10. About
 
-**Purpose:** System overview, core feature summaries, and a user-friendly manual for non-technical users.
+**Purpose:** System overview, core feature summaries, user-friendly manual reference, and troubleshooting guidance for non-technical users.
 
 ```mermaid
 flowchart TD
     A([ℹ️ Enter About Page]) --> B[Render About Page]
-    B --> C{Select View Section}
+    B --> C{Browse Sections}
 
     C -- System Info --> D[System Overview]
-    D --> E[/"Display: Purpose, Goals, Version, Credits"/]
+    D --> E[/"Display: Purpose, Goals, OBE KPIs, Version, Credits"/]
 
     C -- Core Features --> F[Core Features List]
-    F --> G[/"Display 9 Feature Summary Cards"/]
+    F --> G[/"Display 8 Feature Summary Cards"/]
 
-    C -- User Manual --> H[User Manual]
-    H --> I[/"Step-by-Step Guide for Non-Technical Users"/]
-    I --> J[/"FAQs & Contact/Support"/]
+    C -- User Manual --> H["Help & Support Reference"]
+    H --> I[/"Link to Help Page: User Manual Tab"/]
 
-    E & G & J --> K([✅ Page Content Displayed])
+    C -- FAQs --> J[Frequently Asked Questions]
+    J --> K[/"5 Common Questions with Answers"/]
+
+    C -- Troubleshooting --> L[Troubleshooting Reference]
+    L --> M[/"Link to Help Page: Troubleshooting Tab"/]
+    M --> N[/"8 Categories of Common Issues"/]
+
+    E & G & I & K & N --> O([✅ Page Content Displayed])
 
     style A fill:#06b6d4,color:#fff
-    style K fill:#10b981,color:#fff
+    style O fill:#10b981,color:#fff
     style C fill:#8b5cf6,color:#fff
 ```
+
+### About Page Sections
+
+The About page is a **scrollable single-page layout** (not tabbed) with these sections:
+
+| Section | Content |
+|---------|---------|
+| **Hero** | App name, logos (Alumni DB, CEN, SLSU Seal), version number |
+| **What is Alumni DB?** | Purpose, PTC-ACBET accreditation goals, 4 OBE KPIs |
+| **Who is this for?** | 4 user roles: College Dean, CE/CpE/EE Chairpersons |
+| **How It Works** | 4-step overview: Data Collection → Sync → Review → Report |
+| **What You Can Do** | 8 feature summary cards (Dashboard, Directory, Profiling, Sync, Email, Reports, Settings, Help) |
+| **FAQs** | Common questions with answers (component: `faq-accordion.tsx`) |
+| **Troubleshooting** | Reference to Help page's Troubleshooting tab (8 categories, 31 entries) |
 
 ### 9 Core Features Listed
 
@@ -601,12 +718,27 @@ flowchart TD
 8. Settings
 9. About
 
+### Troubleshooting Reference
+
+The About page references the **Help page** (`/help` → Troubleshooting tab) which contains a comprehensive troubleshooting guide with **8 categories** and **31 problem-cause-solution entries**:
+
+1. Application Startup Issues (3 entries)
+2. Login Problems (4 entries)
+3. Data Sync Problems (4 entries)
+4. Data & Records Issues (4 entries)
+5. Email Problems (4 entries)
+6. Export & Report Problems (3 entries)
+7. Display & Interface Issues (4 entries)
+8. Safety & Data Protection (4 entries)
+
 ### User Manual Design
 
 - **Simple language** — no technical jargon
 - **Large numbered steps** — clear action → result format
 - **Visual aids** — screenshots/illustrations where applicable
 - **FAQs** — common questions with reassuring answers
+- **Troubleshooting** — 8 categories of common problems with step-by-step solutions
+- **Cross-reference:** Full detailed troubleshooting is available in the Help page (`/help` → Troubleshooting tab)
 
 ---
 
@@ -616,11 +748,24 @@ flowchart TD
 |--------|-------------------|
 | **System Overview** | Login gate → role detection → hub-and-spoke with 8 modules |
 | **Login & Access** | Sheets-based auth, encrypted offline fallback, 3-attempt lockout, 4 roles |
-| **Analytic Dashboard** | Role-filtered stats, summary cards, % KPIs, freq/WM survey tables |
+| **Analytic Dashboard** | Role-filtered stats, summary cards, % KPIs, freq/WM survey tables, **PDF/DOCX export** |
 | **Alumni Directory** | 5 actions (Search, Add via GForm, Edit, Delete, View Profile), auto-sync queue |
 | **Alumni Profiling** | 3 display views (History, Latest, Timeline), snapshot-based history |
-| **Reports & Export** | 5 output types (PDF, DOCX, XLSX, Filtered Print, Preview/Print), role filtering |
-| **Data Sync** | 4 sync modes (Pull, Push, Full, Auto-Sync), conflict resolution, unsaved change alerts |
-| **Sending Emails** | Compose + History/Inbox branches, role-filtered recipients, GForm link option |
-| **Settings** | SMTP + Sheets config, Dean-only management, preferences for all, dark mode |
-| **About** | 3-section view (System Info, Core Features, User Manual), non-technical manual |
+| **Reports & Export** | **3 export formats (PDF, DOCX, XLSX) + Print Current View**, role filtering |
+| **Data Sync** | 4 sync modes (Pull, Push, Full, Auto-Sync), conflict resolution, unsaved change alerts, **all roles can sync** |
+| **Sending Emails** | Compose + History/Inbox branches, role-filtered recipients, GForm link option, **4 ready-made templates** |
+| **Settings** | SMTP + Sheets config, Dean-only management, preferences for all, dark mode, **Chairpersons can sync own program via /sync** |
+| **About** | Scrollable page (System Info, Core Features, How It Works, FAQs, **Troubleshooting reference**), non-technical manual |
+
+---
+
+## Changelog (v3.0.0)
+
+| Change | Section | Description |
+|--------|---------|-------------|
+| Dashboard Export | §3 + §3a | Added PDF/DOCX export branch after charts/tables display. New sub-flow 3a details the export dropdown flow. |
+| Reports Simplified | §6 | Removed Print Preview/Preview export type. Now 3 export formats + simple Print Current View. |
+| Email Templates | §8 + §8a | Added ready-made template selection step (4 templates) before compose. New sub-flow 8a details template selection with actual subject lines from code. |
+| Chairperson Sync | §7, §9 | Clarified that all roles can access Data Sync module. Settings flowchart updated to show Chairperson sync access via /sync route. Role table corrected: SMTP/Sheets/Sync sections are hidden (not view-only) for Chairpersons. |
+| About Troubleshooting | §10 | Added FAQs and Troubleshooting sections. Cross-references Help page's 8-category, 31-entry troubleshooting guide. Documented scrollable single-page layout. |
+| Architecture Summary | Summary | Updated all modified module descriptions with new capabilities. |

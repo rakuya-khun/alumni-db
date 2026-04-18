@@ -84,4 +84,8 @@ export interface AlumniFilters {
   specialization?: string[]
   workRegion?: string[]
   employmentPosition?: string[]
+  jobRelevance?: string[]
+  jobLevel?: string[]
+  employmentStatus?: string[]
+  industrySector?: string[]
 }

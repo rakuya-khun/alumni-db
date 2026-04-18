@@ -20,7 +20,7 @@ export const sheetsAdapter = {
     const { sheets, spreadsheetId } = getConfig()
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: `${sheetName}!A:BZ`
+      range: `${sheetName}!A:DZ`
     })
     const rows = response.data.values ?? []
     // First row = headers, rest = data
@@ -44,7 +44,7 @@ export const sheetsAdapter = {
     const { sheets, spreadsheetId } = getConfig()
     await sheets.spreadsheets.values.update({
       spreadsheetId,
-      range: `${sheetName}!A${rowIndex}:BZ${rowIndex}`,
+      range: `${sheetName}!A${rowIndex}:DZ${rowIndex}`,
       valueInputOption: 'USER_ENTERED',
       requestBody: { values: [data] }
     })

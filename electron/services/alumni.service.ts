@@ -37,9 +37,13 @@ export const alumniService = {
     const year = data.year_graduated as number
     if (year != null) validateGraduationYear(year)
 
+    // Normalize name before duplicate check
+    const normalizedName = (data.full_name as string).trim().replace(/\s+/g, ' ')
+    data.full_name = normalizedName
+
     // Check for duplicate by composite key
     const existing = alumniRepository.findByCompositeKey(
-      data.full_name as string,
+      normalizedName,
       data.program as string,
       year
     )

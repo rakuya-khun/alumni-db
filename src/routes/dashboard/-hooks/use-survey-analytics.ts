@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useAnalyticsStore } from '../../../stores/analytics.store'
 import { useAuth } from '../../../hooks/use-auth'
 import type { SurveyTableData } from '../-types/analytics.types'
+import type { DashboardFilters } from '../../../../shared/types/analytics.types'
 
 const SURVEY_COLUMNS = [
   'curriculum_relevance',
@@ -13,26 +14,35 @@ const SURVEY_COLUMNS = [
   'time_to_first_job',
   'first_job_method',
   'job_challenges',
+  'professional_title',
+  'specialization',
+  'useful_competencies',
 ] as const
 
-export function useSurveyAnalytics() {
+export function useSurveyAnalytics(extraFilters?: { yearFrom?: number; yearTo?: number; programs?: string[] }) {
   const { accessiblePrograms } = useAuth()
   const { surveyTables, fetchSurveyData, fetchWeightedMeans, weightedMeans } = useAnalyticsStore()
   const [loading, setLoading] = useState(false)
 
-  const programs = accessiblePrograms.length > 0 ? accessiblePrograms : undefined
+  const filters: DashboardFilters = {
+    programs: extraFilters?.programs && extraFilters.programs.length > 0
+      ? extraFilters.programs
+      : accessiblePrograms.length > 0 ? accessiblePrograms : undefined,
+    yearFrom: extraFilters?.yearFrom,
+    yearTo: extraFilters?.yearTo,
+  }
 
   const fetchAll = useCallback(async () => {
     setLoading(true)
     try {
       await Promise.all([
-        ...SURVEY_COLUMNS.map((col) => fetchSurveyData(col, programs)),
-        fetchWeightedMeans(programs),
+        ...SURVEY_COLUMNS.map((col) => fetchSurveyData(col, filters)),
+        fetchWeightedMeans(filters),
       ])
     } finally {
       setLoading(false)
     }
-  }, [programs, fetchSurveyData, fetchWeightedMeans])
+  }, [filters.programs, filters.yearFrom, filters.yearTo, fetchSurveyData, fetchWeightedMeans])
 
   useEffect(() => {
     fetchAll()

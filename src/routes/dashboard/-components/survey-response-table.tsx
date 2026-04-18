@@ -5,7 +5,7 @@ import { formatPercentage } from '../../../lib/formatters'
 const MAX_VISIBLE_ROWS = 10
 const ROW_HEIGHT = 36 // approx height per row in px
 
-export function SurveyResponseTable({ title, data, loading, showWeightedMean, headerSlot }: SurveyTableProps) {
+export function SurveyResponseTable({ title, data, loading, showWeightedMean, headerSlot, totalLabel }: SurveyTableProps) {
   if (loading) {
     return (
       <div className="rounded-xl border border-card-border bg-card p-6 shadow-sm">
@@ -32,7 +32,7 @@ export function SurveyResponseTable({ title, data, loading, showWeightedMean, he
   return (
     <div className="rounded-xl border border-card-border bg-card p-6 shadow-sm">
       <h3 className="text-lg font-semibold text-text-primary">{title}</h3>
-      <p className="mt-1 mb-4 text-xs text-text-muted">Total responses: {totalCount}</p>
+      <p className="mt-1 mb-4 text-xs text-text-muted">{totalLabel ?? 'Total responses'}: {totalCount}</p>
 
       {headerSlot}
 

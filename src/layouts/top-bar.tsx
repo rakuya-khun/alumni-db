@@ -9,6 +9,8 @@ import { useSettingsStore } from '../stores/settings.store'
 import { useNetwork } from '../hooks/use-network'
 import { useGlobalSearch } from '../hooks/use-global-search'
 import { GlobalSearchResults } from '../components/shared/global-search-results'
+import cenLogo from '../assets/CEN._LOGOpng.png'
+import sealLogo from '../assets/SEAL_LOGO.png'
 
 const THEME_META = {
   light: { icon: Sun, next: 'Dark', label: 'Light' },
@@ -97,13 +99,13 @@ export function TopBar() {
   return (
     <header
       className={cn(
-        'fixed top-0 z-20 flex h-16 items-center gap-4 border-b border-card-border bg-card px-6 transition-all duration-200',
+        'fixed top-0 z-20 flex h-16 items-center gap-5 border-b border-card-border bg-card px-6 transition-all duration-200',
         sidebarCollapsed ? 'left-16' : 'left-64',
         'right-0'
       )}
     >
       {/* Global Search */}
-      <div ref={searchRef} className="relative flex-1 max-w-lg">
+      <div ref={searchRef} className="relative flex-1 max-w-lg min-w-64  lg:min-w-96">
         <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
         <input
           ref={inputRef}
@@ -134,7 +136,9 @@ export function TopBar() {
         )}
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between gap-5 w-full">
+
+        <div className=' flex items-center'>
         {/* Status indicators */}
         <div className="flex items-center gap-1.5 rounded-lg border border-card-border bg-surface-secondary px-2.5 py-1.5">
           <div className="flex items-center gap-1.5" title={isOnline ? 'Online' : 'Offline'}>
@@ -182,15 +186,25 @@ export function TopBar() {
             </span>
           )}
         </button>
+        </div>
 
-        {/* User info */}
-        <div className="ml-2 flex items-center gap-3 border-l border-card-border pl-4">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
-            {user?.fullName?.charAt(0)?.toUpperCase() ?? 'U'}
+        <div className='w-full flex items-center justify-end gap-5'>
+          {/* User info */}
+          <div className="ml-2 flex items-center gap-3 border-l lg:border-collapse border-card-border pl-4">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
+              {user?.fullName?.charAt(0)?.toUpperCase() ?? 'U'}
+            </div>
+            <div className="hidden lg:block">
+              <p className="text-sm font-medium text-text-primary">{user?.fullName ?? 'User'}</p>
+              <p className="text-xs text-text-secondary">{user?.role ?? ''}</p>
+            </div>
           </div>
-          <div className="hidden lg:block">
-            <p className="text-sm font-medium text-text-primary">{user?.fullName ?? 'User'}</p>
-            <p className="text-xs text-text-secondary">{user?.role ?? ''}</p>
+
+          
+          {/* Logos */}
+          <div className="ml-2 flex items-center justify-end gap-2 border-l border-card-border pl-4">
+            <img src={cenLogo} alt="CEN Logo" className="h-9 w-9 object-contain" />
+            <img src={sealLogo} alt="SLSU Seal" className="h-9 w-9 object-contain" />
           </div>
         </div>
       </div>

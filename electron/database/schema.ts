@@ -3,11 +3,12 @@ import { logger } from '../utils/logger'
 import {
   SETTINGS_KEYS,
   DEFAULT_SHEETS_ID,
-  DEFAULT_SHEETS_KEY,
+  getDefaultSheetsKey,
   DEFAULT_TAB_CE,
   DEFAULT_TAB_CPE,
   DEFAULT_TAB_EE
 } from '../config/constants'
+import { encryptValue } from '../utils/crypto'
 
 /**
  * Create all tables if they don't exist.
@@ -172,14 +173,14 @@ export function insertDefaults(db: Database): void {
   // Set schema version if not present
   const version = db.exec("SELECT value FROM meta WHERE key = 'schema_version'")
   if (version.length === 0 || version[0].values.length === 0) {
-    db.run("INSERT OR IGNORE INTO meta (key, value) VALUES ('schema_version', '2')")
-    logger.info('schema', 'Default schema version set to 2')
+    db.run("INSERT OR IGNORE INTO meta (key, value) VALUES ('schema_version', '4')")
+    logger.info('schema', 'Default schema version set to 4')
   }
 
   // Seed default Google Sheets settings if not already configured
   const defaults: Record<string, string> = {
     [SETTINGS_KEYS.SHEETS_ID]: DEFAULT_SHEETS_ID,
-    [SETTINGS_KEYS.SHEETS_KEY]: DEFAULT_SHEETS_KEY,
+    [SETTINGS_KEYS.SHEETS_KEY]: encryptValue(getDefaultSheetsKey()),
     [SETTINGS_KEYS.SHEETS_TAB_CE]: DEFAULT_TAB_CE,
     [SETTINGS_KEYS.SHEETS_TAB_CPE]: DEFAULT_TAB_CPE,
     [SETTINGS_KEYS.SHEETS_TAB_EE]: DEFAULT_TAB_EE

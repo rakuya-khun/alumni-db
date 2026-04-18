@@ -5,9 +5,9 @@ import {
   PROGRAMS, SEX_OPTIONS, EMPLOYMENT_STATUSES, JOB_RELEVANCE_OPTIONS,
   SALARY_RANGES, TIME_TO_FIRST_JOB, FIRST_JOB_METHODS, WORK_REGIONS,
   INDUSTRY_SECTORS_BY_PROGRAM, JOB_LEVEL_BY_PROGRAM,
-  COMPETENCY_LABELS, LIKERT_LABELS,
+  COMPETENCY_LABELS, LIKERT_LABELS, USEFUL_COMPETENCY_OPTIONS,
   ADVANCED_STUDY_REASONS, UNEMPLOYMENT_REASONS, JOB_CHALLENGES,
-  PROFESSIONAL_TITLES_BY_PROGRAM,
+  PROFESSIONAL_TITLES_BY_PROGRAM, SPECIALIZATION_BY_PROGRAM,
 } from '../-constants'
 
 const MONTHS = [
@@ -179,12 +179,13 @@ export function CompetenciesFields({ form }: FieldProps) {
       </div>
 
       <div>
-        <FormLabel label="Most Useful Competencies (comma-separated)" />
-        <input {...register('useful_competencies')} className="h-10 w-full rounded-lg border border-card-border bg-surface-primary px-3 text-sm text-text-primary focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" />
-      </div>
-      <div>
-        <FormLabel label="Other Useful Competencies" />
-        <input {...register('useful_competencies_other')} className="h-10 w-full rounded-lg border border-card-border bg-surface-primary px-3 text-sm text-text-primary focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" />
+        <CheckboxGroup
+          form={form}
+          name="useful_competencies"
+          otherName="useful_competencies_other"
+          label="Most Useful Competencies"
+          options={USEFUL_COMPETENCY_OPTIONS}
+        />
       </div>
       <div>
         <FormLabel label="Areas to Improve" />
@@ -200,6 +201,7 @@ export function LicensureFields({ form, selectedProgram }: FieldProps) {
   const hasLicense = watch('has_license')
   const hasGradSchool = watch('has_grad_school')
   const professionalTitles = selectedProgram ? PROFESSIONAL_TITLES_BY_PROGRAM[selectedProgram] ?? [] : []
+  const specializationOptions = selectedProgram ? SPECIALIZATION_BY_PROGRAM[selectedProgram] ?? [] : []
   const examDate = (watch('license_exam_date') as string) ?? ''
   const [examMonth, examYear] = examDate ? examDate.split(' ') : ['', '']
 
@@ -289,11 +291,17 @@ export function LicensureFields({ form, selectedProgram }: FieldProps) {
                 options={ADVANCED_STUDY_REASONS}
               />
             </div>
-            <div>
-              <FormLabel label="Specialization" />
-              <input {...register('specialization')} className="h-10 w-full rounded-lg border border-card-border bg-surface-primary px-3 text-sm text-text-primary focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" />
-            </div>
           </>
+        )}
+        {specializationOptions.length > 0 && (
+          <div className="lg:col-span-2">
+            <CheckboxGroup
+              form={form}
+              name="specialization"
+              label="Specialization"
+              options={specializationOptions}
+            />
+          </div>
         )}
       </div>
     </fieldset>

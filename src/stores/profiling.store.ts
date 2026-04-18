@@ -15,7 +15,7 @@ interface ProfilingState {
   error: string | null
   fetchProfile: (id: number) => Promise<void>
   fetchHistory: (alumniId: number) => Promise<void>
-  getSnapshot: (historyId: number) => Promise<AlumniSnapshot>
+  getSnapshot: (alumniId: number) => Promise<AlumniSnapshot>
   setDisplayMode: (mode: DisplayMode) => void
   clearProfile: () => void
   clearError: () => void
@@ -54,8 +54,8 @@ export const useProfilingStore = create<ProfilingState>((set, get) => ({
     }
   },
 
-  getSnapshot: async (historyId) => {
-    return await ipcClient.profiling.getSnapshot(historyId)
+  getSnapshot: async (alumniId) => {
+    return await ipcClient.profiling.getSnapshot(alumniId)
   },
 
   setDisplayMode: (mode) => set({ displayMode: mode }),

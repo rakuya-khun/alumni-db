@@ -2,7 +2,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { accountSchema, accountUpdateSchema, type AccountFormData } from '../-schemas/account.schema'
 import { X } from 'lucide-react'
-import type { AccountEntry } from '../../../../shared/types/settings.types'
+import type { AccountEntry } from '../../../../shared/types/auth.types'
 
 const ROLES = ['Dean', 'CE Chair', 'CpE Chair', 'EE Chair'] as const
 

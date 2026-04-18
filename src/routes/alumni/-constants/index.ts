@@ -140,11 +140,10 @@ export const JOB_LEVEL_BY_PROGRAM: Record<string, readonly string[]> = {
 
 export const ADVANCED_STUDY_REASONS = [
   'Career advancement',
-  'Higher salary',
-  'Professional development',
-  'Academic / research interest',
-  'Requirement for promotion',
-  'Personal fulfillment',
+  'Promotion requirement',
+  'Specialization',
+  'Research interest',
+  'Personal development',
   'Other',
 ] as const
 
@@ -193,6 +192,47 @@ export const PROFESSIONAL_TITLES_BY_PROGRAM: Record<string, readonly string[]> =
   BSEE: PROFESSIONAL_TITLES_EE,
 }
 
+export const SPECIALIZATION_CE = [
+  'MSCE - Construction Management',
+  'MSCE - Structural Engineering',
+  'MSCE - Geotechnical Engineering',
+  'MSCE - Transportation Engineering',
+  'MSCE - Water Resource Engineering',
+  'MSCE - Environmental Engineering',
+  'Other',
+] as const
+
+export const SPECIALIZATION_CPE = [
+  'Networking',
+  'Hardware System',
+  'Security',
+  'Web Development',
+  'Software Development',
+  'Programming',
+  'Video Game Development',
+  'Data',
+  'Artificial Intelligence',
+  'Information Technology',
+  'Mobile Development',
+  'Other',
+] as const
+
+export const SPECIALIZATION_EE = [
+  'Master of Engineering (MEng)',
+  'MSEE - Power System',
+  'MSEE - Electronics & Communication',
+  'MSEE - Control System',
+  'MSEE - Renewable Energy',
+  'Doctor of Philosophy in Electrical Engineering (PhD EE)',
+  'Other',
+] as const
+
+export const SPECIALIZATION_BY_PROGRAM: Record<string, readonly string[]> = {
+  BSCE: SPECIALIZATION_CE,
+  BSCpE: SPECIALIZATION_CPE,
+  BSEE: SPECIALIZATION_EE,
+}
+
 export const COMPETENCY_LABELS: Record<string, string> = {
   comp_engineering_knowledge: 'Engineering Knowledge',
   comp_problem_solving: 'Problem-Solving Ability',
@@ -204,6 +244,19 @@ export const COMPETENCY_LABELS: Record<string, string> = {
   comp_lifelong_learning: 'Lifelong Learning',
   comp_modern_tools: 'Modern Tools & Technology',
 }
+
+export const USEFUL_COMPETENCY_OPTIONS = [
+  'Engineering Knowledge',
+  'Problem-Solving Ability',
+  'Engineering Design',
+  'Communication Skills',
+  'Teamwork & Collaboration',
+  'Ethics & Responsibility',
+  'Leadership & Initiative',
+  'Lifelong Learning',
+  'Modern Tools & Technology',
+  'Other',
+] as const
 
 export const LIKERT_LABELS: Record<number, string> = {
   1: 'Very Poor',

@@ -20,9 +20,11 @@ export interface AuthResult {
 export interface CachedAccount {
   username: string
   password_hash: string
-  role: UserRole
+  role: string
   full_name: string
   is_active: boolean
+  created_at: string
+  last_login: string
 }
 
 export interface AccountEntry {

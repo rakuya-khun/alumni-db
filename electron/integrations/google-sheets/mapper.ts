@@ -94,6 +94,8 @@ const HEADER_TO_COLUMN: Record<string, string> = {
   'do you have a prc license / professional certificate?': 'has_license',
   'do you possess a professional regulation commission (prc) license?': 'has_license',
   'do you possess professional regulation commission (prc) license?': 'has_license',
+  'do you possess primary professional certificates?': 'has_license',
+  '5. do you possess primary professional certificates?': 'has_license',
   'what is your professional title?': 'professional_title',
   'date of licensure exam (month and year)': 'license_exam_date',
   'other certifications/licenses (if any)': 'other_certifications',
@@ -127,11 +129,16 @@ const HEADER_TO_COLUMN: Record<string, string> = {
   'how did you obtain your first job?': 'first_job_method',
   'is your current job your first job since graduating?': 'is_first_job',
   'what challenges did you face in finding your first job?': 'job_challenges',
+  'challenges encountered in finding your first job': 'job_challenges',
   // Section VII
   'job position after 2 years from graduation': 'position_2yr',
   'job position after 4 years from graduation': 'position_4yr',
   'job position after 6 years from graduation': 'position_6yr',
+  'job position within 2 years from graduation': 'position_2yr',
+  'job position within 4 years from graduation': 'position_4yr',
+  'job position within 6 years from graduation': 'position_6yr',
   'have you received any awards, recognitions, or promotions?': 'has_awards',
+  'have you received awards, recognitions, or promotions in your employment?': 'has_awards',
   'awards, recognitions, or promotions?': 'has_awards',
   // Research & community involvement
   'if any, list research conducted and other projects': 'research_conducted',
@@ -289,6 +296,7 @@ export function resolveHeaderColumn(
   if (s.includes('how relevant') && s.includes('curriculum')) return 'curriculum_relevance'
   if (s.includes('competencies') && (s.includes('useful') || s.includes('most useful'))) return 'useful_competencies'
   if (s.includes('area') && s.includes('improv')) return 'areas_to_improve'
+  if (s.includes('primary professional certificates')) return 'has_license'
   if (s.includes('prc license') || s.includes('regulation commission') || (s.includes('prc') && s.includes('license'))) return 'has_license'
   if (s.includes('professional title')) return 'professional_title'
   if ((s.includes('licensure') || s.includes('exam')) && s.includes('month')) return 'license_exam_date'
@@ -400,8 +408,8 @@ export function mapSheetRowToAlumni(row: string[], headers?: string[]): Record<s
       value = parseInt(String(value), 10) || null
     }
 
-    // Don't overwrite a non-null value with null (handles duplicate columns from Google Forms)
-    if (value === null && result[column] != null) continue
+    // Don't overwrite a non-empty value with null or empty string (handles duplicate columns from Google Forms)
+    if ((value === null || value === '') && result[column] != null && result[column] !== '') continue
 
     result[column] = value
   }

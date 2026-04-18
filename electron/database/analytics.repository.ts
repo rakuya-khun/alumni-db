@@ -1,16 +1,51 @@
 import { getDb } from './db-manager'
 
-/** Helper: build program filter clause + params */
-function programFilter(programs?: string[]): { clause: string; params: unknown[] } {
-  if (!programs || programs.length === 0) return { clause: '', params: [] }
-  const placeholders = programs.map(() => '?').join(', ')
-  return { clause: `WHERE program IN (${placeholders})`, params: [...programs] }
+export interface AnalyticsFilters {
+  programs?: string[]
+  yearFrom?: number
+  yearTo?: number
 }
 
-function programAnd(programs?: string[]): { clause: string; params: unknown[] } {
-  if (!programs || programs.length === 0) return { clause: '', params: [] }
-  const placeholders = programs.map(() => '?').join(', ')
-  return { clause: `AND program IN (${placeholders})`, params: [...programs] }
+/** Helper: build WHERE clause from analytics filters */
+function buildWhere(filters?: AnalyticsFilters): { clause: string; params: unknown[] } {
+  const conditions: string[] = []
+  const params: unknown[] = []
+  if (filters?.programs && filters.programs.length > 0) {
+    const placeholders = filters.programs.map(() => '?').join(', ')
+    conditions.push(`program IN (${placeholders})`)
+    params.push(...filters.programs)
+  }
+  if (filters?.yearFrom != null) {
+    conditions.push('year_graduated >= ?')
+    params.push(filters.yearFrom)
+  }
+  if (filters?.yearTo != null) {
+    conditions.push('year_graduated <= ?')
+    params.push(filters.yearTo)
+  }
+  const clause = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : ''
+  return { clause, params }
+}
+
+/** Helper: build AND clause from analytics filters (for queries that already have WHERE) */
+function buildAnd(filters?: AnalyticsFilters): { clause: string; params: unknown[] } {
+  const conditions: string[] = []
+  const params: unknown[] = []
+  if (filters?.programs && filters.programs.length > 0) {
+    const placeholders = filters.programs.map(() => '?').join(', ')
+    conditions.push(`program IN (${placeholders})`)
+    params.push(...filters.programs)
+  }
+  if (filters?.yearFrom != null) {
+    conditions.push('year_graduated >= ?')
+    params.push(filters.yearFrom)
+  }
+  if (filters?.yearTo != null) {
+    conditions.push('year_graduated <= ?')
+    params.push(filters.yearTo)
+  }
+  const clause = conditions.length > 0 ? 'AND ' + conditions.join(' AND ') : ''
+  return { clause, params }
 }
 
 function scalarResult(result: { columns: string[]; values: unknown[][] }[]): number {
@@ -19,19 +54,27 @@ function scalarResult(result: { columns: string[]; values: unknown[][] }[]): num
 }
 
 export const analyticsRepository = {
-  /** Total alumni count for the given programs */
-  getTotalCount(programs?: string[]): number {
+  /** Total alumni count for the given filters */
+  getTotalCount(filters?: AnalyticsFilters): number {
     const db = getDb()
-    const { clause, params } = programFilter(programs)
+    const { clause, params } = buildWhere(filters)
     return scalarResult(db.exec(`SELECT COUNT(*) FROM alumni ${clause}`, params))
   },
 
-  /** KPI 1: % Board Passers (has_license = 1) */
-  getBoardPasserRate(programs?: string[]): { total: number; passers: number; rate: number } {
+  /** KPI 1: % Board Passers (has_license = 1) — excludes BSCpE (no PRC board exam) */
+  getBoardPasserRate(filters?: AnalyticsFilters): { total: number; passers: number; rate: number } {
     const db = getDb()
-    const { clause, params } = programFilter(programs)
+    // Only CE and EE have PRC board exams; exclude CpE from board passer calculation
+    const srcPrograms = filters?.programs && filters.programs.length > 0
+      ? filters.programs.filter((p) => p !== 'BSCpE')
+      : ['BSCE', 'BSEE']
+    if (srcPrograms.length === 0) {
+      return { total: 0, passers: 0, rate: 0 }
+    }
+    const boardFilters: AnalyticsFilters = { ...filters, programs: srcPrograms }
+    const { clause, params } = buildWhere(boardFilters)
     const total = scalarResult(db.exec(`SELECT COUNT(*) FROM alumni ${clause}`, params))
-    const { clause: andClause, params: andParams } = programAnd(programs)
+    const { clause: andClause, params: andParams } = buildAnd(boardFilters)
     const passers = scalarResult(
       db.exec(
         `SELECT COUNT(*) FROM alumni WHERE has_license = 1 ${andClause}`,
@@ -43,11 +86,11 @@ export const analyticsRepository = {
   },
 
   /** KPI 2: % Employed (is_employed = 1) */
-  getEmploymentRate(programs?: string[]): { total: number; employed: number; rate: number } {
+  getEmploymentRate(filters?: AnalyticsFilters): { total: number; employed: number; rate: number } {
     const db = getDb()
-    const { clause, params } = programFilter(programs)
+    const { clause, params } = buildWhere(filters)
     const total = scalarResult(db.exec(`SELECT COUNT(*) FROM alumni ${clause}`, params))
-    const { clause: andClause, params: andParams } = programAnd(programs)
+    const { clause: andClause, params: andParams } = buildAnd(filters)
     const employed = scalarResult(
       db.exec(
         `SELECT COUNT(*) FROM alumni WHERE is_employed = 1 ${andClause}`,
@@ -60,10 +103,10 @@ export const analyticsRepository = {
 
   /** KPI 3: % Field-Related Employment (job_relevance is 'very_related' or 'related') */
   getFieldRelatedRate(
-    programs?: string[]
+    filters?: AnalyticsFilters
   ): { employed: number; fieldRelated: number; rate: number } {
     const db = getDb()
-    const { clause: andClause, params: andParams } = programAnd(programs)
+    const { clause: andClause, params: andParams } = buildAnd(filters)
     const employed = scalarResult(
       db.exec(
         `SELECT COUNT(*) FROM alumni WHERE is_employed = 1 ${andClause}`,
@@ -82,10 +125,10 @@ export const analyticsRepository = {
 
   /** KPI 4: % Supervisory/Managerial */
   getSupervisoryRate(
-    programs?: string[]
+    filters?: AnalyticsFilters
   ): { employed: number; supervisory: number; rate: number } {
     const db = getDb()
-    const { clause: andClause, params: andParams } = programAnd(programs)
+    const { clause: andClause, params: andParams } = buildAnd(filters)
     const employed = scalarResult(
       db.exec(
         `SELECT COUNT(*) FROM alumni WHERE is_employed = 1 ${andClause}`,
@@ -107,7 +150,7 @@ export const analyticsRepository = {
   /** Frequency distribution for any column, grouped by value */
   getFrequencyDistribution(
     column: string,
-    programs?: string[]
+    filters?: AnalyticsFilters
   ): { value: string; count: number }[] {
     const db = getDb()
     // Allowlist columns to prevent SQL injection
@@ -116,13 +159,14 @@ export const analyticsRepository = {
       'is_employed', 'employment_status', 'job_level', 'job_relevance',
       'salary_range', 'time_to_first_job', 'first_job_method', 'work_region',
       'industry_sector', 'has_grad_school', 'curriculum_relevance',
-      'unemployment_reason', 'has_awards'
+      'unemployment_reason', 'has_awards', 'professional_title', 'specialization'
     ]
     if (!allowedColumns.includes(column)) return []
 
-    const { clause, params } = programFilter(programs)
+    const { clause, params } = buildWhere(filters)
+    const whereOrAnd = clause ? 'AND' : 'WHERE'
     const result = db.exec(
-      `SELECT ${column} as value, COUNT(*) as count FROM alumni ${clause} GROUP BY ${column} ORDER BY count DESC`,
+      `SELECT ${column} as value, COUNT(*) as count FROM alumni ${clause} ${whereOrAnd} ${column} IS NOT NULL AND ${column} != '' GROUP BY ${column} ORDER BY count DESC`,
       params
     )
     if (result.length === 0) return []
@@ -133,7 +177,7 @@ export const analyticsRepository = {
   },
 
   /** Weighted mean for the 9 competency Likert-scale items (1–5) */
-  getCompetencyMeans(programs?: string[]): { competency: string; mean: number }[] {
+  getCompetencyMeans(filters?: AnalyticsFilters): { competency: string; mean: number }[] {
     const db = getDb()
     const competencies = [
       'comp_engineering_knowledge',
@@ -147,7 +191,7 @@ export const analyticsRepository = {
       'comp_modern_tools'
     ]
 
-    const { clause, params } = programFilter(programs)
+    const { clause, params } = buildWhere(filters)
 
     return competencies.map((col) => {
       const result = db.exec(
@@ -160,9 +204,9 @@ export const analyticsRepository = {
   },
 
   /** Count by year for a given set of programs */
-  getCountByYear(programs?: string[]): { year: number; count: number }[] {
+  getCountByYear(filters?: AnalyticsFilters): { year: number; count: number }[] {
     const db = getDb()
-    const { clause, params } = programFilter(programs)
+    const { clause, params } = buildWhere(filters)
     const result = db.exec(
       `SELECT year_graduated, COUNT(*) as count FROM alumni ${clause} GROUP BY year_graduated ORDER BY year_graduated`,
       params
@@ -175,7 +219,7 @@ export const analyticsRepository = {
   },
 
   /** Competency frequency distribution (returns rows like 'comp_name:scale_value') */
-  getCompetencyFrequency(programs?: string[]): { value: string; count: number }[] {
+  getCompetencyFrequency(filters?: AnalyticsFilters): { value: string; count: number }[] {
     const db = getDb()
     const competencies = [
       'comp_engineering_knowledge',
@@ -188,7 +232,7 @@ export const analyticsRepository = {
       'comp_lifelong_learning',
       'comp_modern_tools'
     ]
-    const { clause, params } = programFilter(programs)
+    const { clause, params } = buildWhere(filters)
     const rows: { value: string; count: number }[] = []
 
     for (const col of competencies) {
@@ -206,12 +250,12 @@ export const analyticsRepository = {
   },
 
   /** Frequency distribution for JSON array TEXT columns (e.g., advanced_study_reason, job_challenges) */
-  getJsonArrayFrequency(column: string, programs?: string[]): { value: string; count: number }[] {
+  getJsonArrayFrequency(column: string, filters?: AnalyticsFilters): { value: string; count: number }[] {
     const allowedJsonColumns = ['advanced_study_reason', 'job_challenges', 'useful_competencies', 'first_job_method']
     if (!allowedJsonColumns.includes(column)) return []
 
     const db = getDb()
-    const { clause, params } = programFilter(programs)
+    const { clause, params } = buildWhere(filters)
     const result = db.exec(
       `SELECT ${column} FROM alumni ${clause}`,
       params
@@ -252,10 +296,61 @@ export const analyticsRepository = {
       .sort((a, b) => b.count - a.count)
   },
 
-  /** Count by program */
-  getCountByProgram(programs?: string[]): { program: string; count: number }[] {
+  /** Frequency distribution for comma-separated multi-value TEXT columns (e.g., professional_title, specialization) */
+  getMultiValueFrequency(
+    column: string,
+    filters?: AnalyticsFilters,
+    options?: { caseInsensitive?: boolean }
+  ): { value: string; count: number }[] {
+    const allowedColumns = [
+      'program', 'year_graduated', 'sex', 'has_honors', 'has_license',
+      'is_employed', 'employment_status', 'job_level', 'job_relevance',
+      'salary_range', 'time_to_first_job', 'first_job_method', 'work_region',
+      'industry_sector', 'has_grad_school', 'curriculum_relevance',
+      'unemployment_reason', 'has_awards', 'professional_title', 'specialization'
+    ]
+    if (!allowedColumns.includes(column)) return []
+
     const db = getDb()
-    const { clause, params } = programFilter(programs)
+    const { clause, params } = buildWhere(filters)
+    const whereOrAnd = clause ? 'AND' : 'WHERE'
+    const result = db.exec(
+      `SELECT ${column} FROM alumni ${clause} ${whereOrAnd} ${column} IS NOT NULL AND ${column} != ''`,
+      params
+    )
+    if (result.length === 0) return []
+
+    const caseInsensitive = options?.caseInsensitive ?? false
+    const freq = new Map<string, number>()
+    const displayMap = new Map<string, string>() // lowercase key → first-seen capitalization
+
+    for (const row of result[0].values) {
+      const raw = row[0]
+      if (!raw) continue
+      const parts = String(raw).split(',')
+      for (const part of parts) {
+        const trimmed = part.trim()
+        if (!trimmed) continue
+        const key = caseInsensitive ? trimmed.toLowerCase() : trimmed
+        if (caseInsensitive && !displayMap.has(key)) {
+          displayMap.set(key, trimmed)
+        }
+        freq.set(key, (freq.get(key) ?? 0) + 1)
+      }
+    }
+
+    return Array.from(freq.entries())
+      .map(([key, count]) => ({
+        value: caseInsensitive ? (displayMap.get(key) ?? key) : key,
+        count
+      }))
+      .sort((a, b) => b.count - a.count)
+  },
+
+  /** Count by program */
+  getCountByProgram(filters?: AnalyticsFilters): { program: string; count: number }[] {
+    const db = getDb()
+    const { clause, params } = buildWhere(filters)
     const result = db.exec(
       `SELECT program, COUNT(*) as count FROM alumni ${clause} GROUP BY program ORDER BY program`,
       params

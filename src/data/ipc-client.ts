@@ -1,7 +1,7 @@
 import { IPC_CHANNELS } from '../../shared/ipc-channels'
 import type { Alumni, AlumniFilters } from '../../shared/types/alumni.types'
 import type { AccountEntry } from '../../shared/types/auth.types'
-import type { DashboardStats, SurveyTableData, WeightedMeanResult } from '../../shared/types/analytics.types'
+import type { DashboardStats, SurveyTableData, WeightedMeanResult, DashboardFilters } from '../../shared/types/analytics.types'
 import type { HistoryEntry, AlumniSnapshot } from '../../shared/types/profiling.types'
 import type { SyncResult, SyncStatusInfo } from '../../shared/types/sync.types'
 
@@ -43,19 +43,21 @@ export const ipcClient = {
     getEmploymentPositions: () => invoke<string[]>(IPC_CHANNELS.ALUMNI.GET_EMPLOYMENT_POSITIONS),
   },
   analytics: {
-    getDashboard: (programs?: string[]) => invoke<DashboardStats>(IPC_CHANNELS.ANALYTICS.GET_DASHBOARD, programs),
-    getSurveyData: (column: string, programs?: string[]) => invoke<SurveyTableData>(IPC_CHANNELS.ANALYTICS.GET_SURVEY_DATA, column, programs),
-    getWeightedMeans: (programs?: string[]) => invoke<WeightedMeanResult[]>(IPC_CHANNELS.ANALYTICS.GET_WEIGHTED_MEANS, programs),
+    getDashboard: (filters?: DashboardFilters) => invoke<DashboardStats>(IPC_CHANNELS.ANALYTICS.GET_DASHBOARD, filters),
+    getSurveyData: (column: string, filters?: DashboardFilters) => invoke<SurveyTableData>(IPC_CHANNELS.ANALYTICS.GET_SURVEY_DATA, column, filters),
+    getWeightedMeans: (filters?: DashboardFilters) => invoke<WeightedMeanResult[]>(IPC_CHANNELS.ANALYTICS.GET_WEIGHTED_MEANS, filters),
   },
   profiling: {
     getProfile: (id: number) => invoke<Alumni>(IPC_CHANNELS.PROFILING.GET_PROFILE, id),
     getHistory: (alumniId: number) => invoke<HistoryEntry[]>(IPC_CHANNELS.PROFILING.GET_HISTORY, alumniId),
-    getSnapshot: (historyId: number) => invoke<AlumniSnapshot>(IPC_CHANNELS.PROFILING.GET_SNAPSHOT, historyId),
+    getSnapshot: (alumniId: number) => invoke<AlumniSnapshot>(IPC_CHANNELS.PROFILING.GET_SNAPSHOT, alumniId),
   },
   export: {
     pdf: (filters?: AlumniFilters) => invoke<string>(IPC_CHANNELS.EXPORT.PDF, filters),
     docx: (filters?: AlumniFilters) => invoke<string>(IPC_CHANNELS.EXPORT.DOCX, filters),
     excel: (filters?: AlumniFilters) => invoke<string>(IPC_CHANNELS.EXPORT.EXCEL, filters),
+    dashboardPdf: (filters?: DashboardFilters) => invoke<string>(IPC_CHANNELS.EXPORT.DASHBOARD_PDF, filters),
+    dashboardDocx: (filters?: DashboardFilters) => invoke<string>(IPC_CHANNELS.EXPORT.DASHBOARD_DOCX, filters),
   },
   email: {
     send: (payload: { subject: string; body: string; recipientFilters: AlumniFilters; includeGformLink: boolean }) =>

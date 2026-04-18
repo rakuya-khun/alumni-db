@@ -57,13 +57,16 @@ export function ProfileSearch({ onSelect }: ProfileSearchProps) {
         )}
       </div>
 
-      {(results.length > 0 || loading) && query.trim().length >= 2 && (
+      {debouncedQuery.trim().length >= 2 && (
         <div className="absolute z-20 mt-1 w-full rounded-lg border border-card-border bg-surface-primary shadow-lg max-h-64 overflow-y-auto">
           {loading && (
             <div className="px-4 py-3 text-sm text-text-secondary">Searching...</div>
           )}
           {!loading && results.length === 0 && (
-            <div className="px-4 py-3 text-sm text-text-secondary">No results found</div>
+            <div className="px-4 py-6 text-center">
+              <p className="text-sm font-medium text-text-secondary">No alumni found</p>
+              <p className="mt-1 text-xs text-text-muted">Try a different name or check the spelling</p>
+            </div>
           )}
           {results.map((alumni) => (
             <button

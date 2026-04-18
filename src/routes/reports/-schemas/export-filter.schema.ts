@@ -17,6 +17,11 @@ export const exportFilterSchema = z.object({
   hasLicense: z.coerce.number().optional(),
   search: z.string().optional(),
   paperSize: z.enum(PAPER_SIZES).optional(),
+  jobRelevance: z.array(z.string()).optional(),
+  jobLevel: z.array(z.string()).optional(),
+  employmentStatus: z.array(z.string()).optional(),
+  industrySector: z.array(z.string()).optional(),
+  workRegion: z.array(z.string()).optional(),
 })
 
 export type ExportFilterData = z.infer<typeof exportFilterSchema>

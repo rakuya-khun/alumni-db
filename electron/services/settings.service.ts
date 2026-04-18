@@ -1,5 +1,5 @@
 import { settingsRepository } from '../database/settings.repository'
-import { SETTINGS_KEYS, DEFAULT_SHEETS_ID } from '../config/constants'
+import { SETTINGS_KEYS, DEFAULT_SHEETS_ID, getDefaultSheetsKey } from '../config/constants'
 import { encryptValue, decryptValue } from '../utils/crypto'
 import { safeSave } from '../database/db-manager'
 import { logger } from '../utils/logger'
@@ -16,9 +16,12 @@ export const settingsService = {
 
   getAll(): Record<string, string | null> {
     const all = settingsRepository.getAll()
-    // Never return encrypted SMTP password to renderer — mask it
+    // Never return encrypted secrets to renderer — mask them
     if (all[SETTINGS_KEYS.SMTP_PASS]) {
       all[SETTINGS_KEYS.SMTP_PASS] = '••••••••'
+    }
+    if (all[SETTINGS_KEYS.SHEETS_KEY]) {
+      all[SETTINGS_KEYS.SHEETS_KEY] = '••••••••'
     }
     return all
   },
@@ -35,9 +38,12 @@ export const settingsService = {
     let sheetsChanged = false
 
     for (const [key, value] of Object.entries(settings)) {
-      // Encrypt SMTP password before storing
+      // Encrypt sensitive keys before storing
       if (key === SETTINGS_KEYS.SMTP_PASS && value) {
         // Skip masked placeholder — don't overwrite real password
+        if (value === '••••••••') continue
+        settingsRepository.set(key, encryptValue(value))
+      } else if (key === SETTINGS_KEYS.SHEETS_KEY && value) {
         if (value === '••••••••') continue
         settingsRepository.set(key, encryptValue(value))
       } else {
@@ -94,6 +100,24 @@ export const settingsService = {
     }
   },
 
+  /** Get decrypted Sheets service account key */
+  getSheetsKey(): string | null {
+    const raw = settingsRepository.get(SETTINGS_KEYS.SHEETS_KEY)
+    if (!raw) return getDefaultSheetsKey()
+    try {
+      return decryptValue(raw)
+    } catch {
+      // Legacy unencrypted value or corrupted — try using as-is, then fall back to default
+      try {
+        JSON.parse(raw) // validate it's valid JSON
+        return raw
+      } catch {
+        logger.warn('settings', 'Failed to decrypt Sheets key, using bundled default')
+        return getDefaultSheetsKey()
+      }
+    }
+  },
+
   /** Get Sheets config */
   getSheetsConfig(): {
     spreadsheetId: string | null
@@ -102,14 +126,13 @@ export const settingsService = {
   } {
     const settings = settingsRepository.getMultiple([
       SETTINGS_KEYS.SHEETS_ID,
-      SETTINGS_KEYS.SHEETS_KEY,
       SETTINGS_KEYS.SHEETS_TAB_CE,
       SETTINGS_KEYS.SHEETS_TAB_CPE,
       SETTINGS_KEYS.SHEETS_TAB_EE
     ])
     return {
       spreadsheetId: settings[SETTINGS_KEYS.SHEETS_ID] || DEFAULT_SHEETS_ID,
-      serviceAccountKey: settings[SETTINGS_KEYS.SHEETS_KEY],
+      serviceAccountKey: this.getSheetsKey(),
       sheetTabs: {
         ce: settings[SETTINGS_KEYS.SHEETS_TAB_CE] || 'CE',
         cpe: settings[SETTINGS_KEYS.SHEETS_TAB_CPE] || 'CPE',

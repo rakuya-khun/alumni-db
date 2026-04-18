@@ -1,3 +1,9 @@
+export interface DashboardFilters {
+  programs?: string[]
+  yearFrom?: number
+  yearTo?: number
+}
+
 export interface DashboardStats {
   totalCount: number
   boardPasserRate: RateResult

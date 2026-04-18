@@ -17,6 +17,7 @@ import { cn } from '../lib/cn'
 import { useUIStore } from '../stores/ui.store'
 import { useAuthStore } from '../stores/auth.store'
 import { useSyncStore } from '../stores/sync.store'
+import alumniLogo from '../assets/Alumni DB.png'
 
 const NAV_GROUPS = [
   {
@@ -72,13 +73,11 @@ export function Sidebar() {
     >
       {/* Logo area */}
       <div className="flex h-16 items-center border-b border-card-border px-4">
-        {!sidebarCollapsed && (
-          <span className="text-lg font-bold text-sidebar-text-active">Alumni DB</span>
-        )}
+        <img src={alumniLogo} alt="Alumni DB" className={cn(sidebarCollapsed ? 'mx-auto h-8 w-8' : 'h-9 w-9', 'object-contain')} />
         <button
           onClick={toggleSidebar}
           className={cn(
-            'flex h-8 w-8 items-center justify-center rounded-lg text-sidebar-text hover:bg-sidebar-hover',
+            'flex h-8 w-8 items-center justify-center rounded-lg text-sidebar-text hover:bg-sidebar-hover absolute',
             sidebarCollapsed ? 'mx-auto' : 'ml-auto'
           )}
           title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}

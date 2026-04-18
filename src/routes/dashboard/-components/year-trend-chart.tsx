@@ -15,9 +15,9 @@ export function YearTrendChart({ data }: YearTrendChartProps) {
   }
 
   return (
-    <div className="rounded-xl border border-card-border bg-card p-6 shadow-sm">
+    <div className="rounded-xl border border-card-border bg-card p-6 shadow-sm h-full flex flex-col">
       <h3 className="mb-4 text-lg font-semibold text-text-primary">Responses of Graduates Per Year</h3>
-      <div className="h-64">
+      <div className="h-full">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
