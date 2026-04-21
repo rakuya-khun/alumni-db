@@ -54,9 +54,11 @@ function buildWhereClause(filters: AlumniFilters): { clause: string; params: unk
   }
 
   if (filters.specialization && filters.specialization.length > 0) {
-    const placeholders = filters.specialization.map(() => '?').join(', ')
-    conditions.push(`specialization IN (${placeholders})`)
-    params.push(...filters.specialization)
+    const likeClauses = filters.specialization.map(() => `(specialization = ? OR specialization LIKE ? OR specialization LIKE ? OR specialization LIKE ?)`).join(' OR ')
+    conditions.push(`(${likeClauses})`)
+    for (const s of filters.specialization) {
+      params.push(s, `${s},%`, `%, ${s},%`, `%, ${s}`)
+    }
   }
 
   if (filters.workRegion && filters.workRegion.length > 0) {
@@ -136,9 +138,17 @@ export const alumniRepository = {
     /** Get distinct specializations */
     getDistinctSpecializations(): string[] {
       const db = getDb()
-      const result = db.exec('SELECT DISTINCT specialization FROM alumni WHERE specialization IS NOT NULL AND specialization != ""')
+      const result = db.exec('SELECT specialization FROM alumni WHERE specialization IS NOT NULL AND specialization != ""')
       if (result.length === 0) return []
-      return result[0].values.map((row) => String(row[0]))
+      const seen = new Set<string>()
+      for (const row of result[0].values) {
+        const raw = String(row[0])
+        for (const part of raw.split(',')) {
+          const trimmed = part.trim()
+          if (trimmed) seen.add(trimmed)
+        }
+      }
+      return Array.from(seen).sort()
     },
 
     /** Get distinct work regions */

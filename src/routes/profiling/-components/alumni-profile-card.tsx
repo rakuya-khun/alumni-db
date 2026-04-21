@@ -135,10 +135,13 @@ export function AlumniProfileCard({ alumni }: AlumniProfileCardProps) {
           <SectionCard title="Licensure & Professional Qualifications">
             <div className="space-y-3">
               <InfoRow icon={Award} label="Has License" value={alumni.has_license === 1 ? 'Yes' : alumni.has_license === 0 ? 'No' : null} />
+              <InfoRow icon={Award} label="Professional Title" value={alumni.professional_title_other || alumni.professional_title} /> 
               <InfoRow icon={Award} label="License Exam Date" value={formatDate(alumni.license_exam_date)} />
               <InfoRow icon={Award} label="Other Certifications" value={alumni.other_certifications} />
               <InfoRow icon={GraduationCap} label="Has Graduate School" value={alumni.has_grad_school === 1 ? 'Yes' : alumni.has_grad_school === 0 ? 'No' : null} />
               <InfoRow icon={GraduationCap} label="Graduate Program" value={alumni.grad_school_program} />
+              <InfoRow icon={BookOpen} label="Specialization" value={alumni.specialization} />
+             
             </div>
           </SectionCard>
 
@@ -165,8 +168,6 @@ export function AlumniProfileCard({ alumni }: AlumniProfileCardProps) {
           </div>
         </SectionCard>
       </div>
-
-    
 
       {/* ── 5. COMMUNITY INVOLVEMENT (full-width) ───────────────── */}
       <FullWidthRow label="Community Involvement" value={alumni.community_involvement} />
@@ -215,16 +216,8 @@ export function AlumniProfileCard({ alumni }: AlumniProfileCardProps) {
             <p className="text-sm text-text-primary">{alumni.job_relevance || '—'}</p>
           </div>
           <div className="rounded-lg border border-card-border p-4">
-            <p className="mb-1 text-xs font-medium text-text-secondary">Professional Title</p>
-            <p className="text-sm text-text-primary">{alumni.professional_title_other || alumni.professional_title || '—'}</p>
-          </div>
-          <div className="rounded-lg border border-card-border p-4">
             <p className="mb-1 text-xs font-medium text-text-secondary">Reasons for Pursuing Advance Study</p>
             <p className="text-sm text-text-primary">{alumni.advanced_study_reason_other || alumni.advanced_study_reason || '—'}</p>
-          </div>
-          <div className="rounded-lg border border-card-border p-4">
-            <p className="mb-1 text-xs font-medium text-text-secondary">Specialization</p>
-            <p className="text-sm text-text-primary">{alumni.specialization || '—'}</p>
           </div>
         </div>
       </SectionCard>

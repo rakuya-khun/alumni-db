@@ -111,9 +111,9 @@ function gatherAllSurveyData(filters: AnalyticsFilters) {
   return {
     // PROFESSIONAL COMPETENCE
     curriculumRelevance: getFreq('curriculum_relevance'),
-    professionalTitle: getFreq('professional_title'),
+    professionalTitle: analyticsRepository.getMultiValueFrequency('professional_title', filters),
     advancedStudyReason: getJson('advanced_study_reason'),
-    specialization: getFreq('specialization'),
+    specialization: analyticsRepository.getMultiValueFrequency('specialization', filters, { caseInsensitive: true }),
 
     // PERSONAL AND PROFESSIONAL UNDERTAKINGS
     competencyFrequency: compFreq,
