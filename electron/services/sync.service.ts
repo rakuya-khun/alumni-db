@@ -1,4 +1,5 @@
 import { alumniRepository } from '../database/alumni.repository'
+import { alumniHistoryRepository } from '../database/alumni-history.repository'
 import { syncQueueRepository } from '../database/sync-queue.repository'
 import { safeSave } from '../database/db-manager'
 import { isOnline } from '../utils/network'
@@ -8,6 +9,53 @@ import { settingsService } from './settings.service'
 /** Normalize a name: trim, collapse multiple spaces to single */
 function normalizeName(name: string): string {
   return name.trim().replace(/\s+/g, ' ')
+}
+
+/**
+ * Merge non-empty incoming fields into an existing alumni record, snapshotting
+ * the prior state into alumni_history first. Returns true if anything changed.
+ */
+function mergeAndSnapshot(
+  existing: Record<string, unknown>,
+  incoming: Record<string, unknown>
+): boolean {
+  const excluded = new Set([
+    'full_name',
+    'program',
+    'year_graduated',
+    'sync_status',
+    'created_at',
+    'id',
+    'updated_at',
+    'synced_at'
+  ])
+
+  const mergeData: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(incoming)) {
+    if (excluded.has(key)) continue
+    if (value === null || value === undefined) continue
+    if (value === '') continue
+    mergeData[key] = value
+  }
+
+  const changedFields: string[] = []
+  for (const key of Object.keys(mergeData)) {
+    if (String(existing[key] ?? '') !== String(mergeData[key] ?? '')) {
+      changedFields.push(key)
+    }
+  }
+
+  if (changedFields.length === 0) return false
+
+  const id = existing.id as number
+  alumniHistoryRepository.createSnapshot(
+    id,
+    JSON.stringify(existing),
+    JSON.stringify(changedFields)
+  )
+  alumniRepository.update(id, mergeData)
+  syncQueueRepository.markSynced(id)
+  return true
 }
 
 interface SyncResult {
@@ -86,9 +134,7 @@ export const syncService = {
             syncQueueRepository.markConflict(existing.id)
             conflicts++
           } else {
-            alumniRepository.update(existing.id, mapped)
-            syncQueueRepository.markSynced(existing.id)
-            pulled++
+            if (mergeAndSnapshot(existing as unknown as Record<string, unknown>, mapped)) pulled++
           }
         } else {
           // ── Update Alumni row (no year_graduated) ──
@@ -103,24 +149,7 @@ export const syncService = {
             syncQueueRepository.markConflict(existing.id)
             conflicts++
           } else {
-            // Merge only non-empty fields from Update row — don't overwrite existing data with blanks
-            const mergeData: Record<string, unknown> = {}
-            for (const [key, value] of Object.entries(mapped)) {
-              if (key === 'created_at') continue          // Keep original timestamp
-              if (value === null || value === undefined) continue
-              if (value === '') continue
-              mergeData[key] = value
-            }
-            // Remove keys that shouldn't be set during merge
-            delete mergeData.full_name   // Already matched
-            delete mergeData.program     // Already matched
-            delete mergeData.sync_status // Will be set explicitly
-
-            if (Object.keys(mergeData).length > 0) {
-              alumniRepository.update(existing.id, mergeData)
-              syncQueueRepository.markSynced(existing.id)
-              pulled++
-            }
+            if (mergeAndSnapshot(existing as unknown as Record<string, unknown>, mapped)) pulled++
           }
         }
       }
@@ -183,10 +212,28 @@ export const syncService = {
         const tabName = programToTab[record.program] ?? sheetTabs.ce
         const headers = tabHeaders[tabName]
         const sheetRow = mapAlumniToSheetRow(record, headers.length > 0 ? headers : undefined)
+
+        // Locate sheet row using the ORIGINAL composite key (from oldest history snapshot)
+        // so that renames/edits update the existing row instead of appending a duplicate.
+        const history = alumniHistoryRepository.getByAlumniId(record.id)
+        // getByAlumniId orders DESC; oldest is last
+        const oldest = history.length > 0 ? history[history.length - 1] : null
+        let lookupName = record.full_name
+        let lookupProgram = record.program
+        let lookupYear = record.year_graduated
+        if (oldest) {
+          try {
+            const snap = JSON.parse(oldest.snapshot) as Record<string, unknown>
+            if (typeof snap.full_name === 'string' && snap.full_name.trim()) lookupName = snap.full_name
+            if (typeof snap.program === 'string' && snap.program.trim()) lookupProgram = snap.program
+            if (typeof snap.year_graduated === 'number') lookupYear = snap.year_graduated
+          } catch { /* ignore parse errors */ }
+        }
+
         await sheetsAdapter.upsertRow(
-          record.full_name,
-          record.program,
-          record.year_graduated,
+          lookupName,
+          lookupProgram,
+          lookupYear,
           sheetRow,
           tabName
         )

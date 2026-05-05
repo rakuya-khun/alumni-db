@@ -111,4 +111,46 @@ export function registerExportHandlers(): void {
       return { success: false, error: (error as Error).message }
     }
   })
+
+  ipcMain.handle(CH.PEO_PDF, async (_event, filters?: Record<string, unknown>) => {
+    try {
+      const scoped = scopeFilters(filters ?? {})
+      const win = BrowserWindow.getFocusedWindow()
+      if (!win) return { success: false, error: 'No active window' }
+
+      const { canceled, filePath } = await dialog.showSaveDialog(win, {
+        title: 'Export PEO Attainment Report (PDF)',
+        defaultPath: 'peo-attainment-report.pdf',
+        filters: [{ name: 'PDF', extensions: ['pdf'] }]
+      })
+      if (canceled || !filePath) return { success: false, error: 'Export cancelled' }
+
+      await exportService.peoToPdf(filePath, scoped)
+      return { success: true, data: filePath }
+    } catch (error) {
+      logger.error('ipc', `${CH.PEO_PDF} failed`, { error: (error as Error).message })
+      return { success: false, error: (error as Error).message }
+    }
+  })
+
+  ipcMain.handle(CH.PEO_DOCX, async (_event, filters?: Record<string, unknown>) => {
+    try {
+      const scoped = scopeFilters(filters ?? {})
+      const win = BrowserWindow.getFocusedWindow()
+      if (!win) return { success: false, error: 'No active window' }
+
+      const { canceled, filePath } = await dialog.showSaveDialog(win, {
+        title: 'Export PEO Attainment Report (Word)',
+        defaultPath: 'peo-attainment-report.docx',
+        filters: [{ name: 'Word Document', extensions: ['docx'] }]
+      })
+      if (canceled || !filePath) return { success: false, error: 'Export cancelled' }
+
+      await exportService.peoToDocx(filePath, scoped)
+      return { success: true, data: filePath }
+    } catch (error) {
+      logger.error('ipc', `${CH.PEO_DOCX} failed`, { error: (error as Error).message })
+      return { success: false, error: (error as Error).message }
+    }
+  })
 }

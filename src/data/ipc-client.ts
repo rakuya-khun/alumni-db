@@ -3,6 +3,7 @@ import type { Alumni, AlumniFilters } from '../../shared/types/alumni.types'
 import type { AccountEntry } from '../../shared/types/auth.types'
 import type { DashboardStats, SurveyTableData, WeightedMeanResult, DashboardFilters } from '../../shared/types/analytics.types'
 import type { HistoryEntry, AlumniSnapshot } from '../../shared/types/profiling.types'
+import type { PeoFilters, PeoResult, PeoOutcomeRates } from '../../shared/types/peo.types'
 import type { SyncResult, SyncStatusInfo } from '../../shared/types/sync.types'
 
 interface IpcResponse<T = unknown> {
@@ -52,15 +53,28 @@ export const ipcClient = {
     getHistory: (alumniId: number) => invoke<HistoryEntry[]>(IPC_CHANNELS.PROFILING.GET_HISTORY, alumniId),
     getSnapshot: (alumniId: number) => invoke<AlumniSnapshot>(IPC_CHANNELS.PROFILING.GET_SNAPSHOT, alumniId),
   },
+  peo: {
+    compute: (filters?: PeoFilters) => invoke<PeoResult>(IPC_CHANNELS.PEO.COMPUTE, filters),
+    getOutcomeRates: (filters?: PeoFilters) => invoke<PeoOutcomeRates>(IPC_CHANNELS.PEO.GET_OUTCOME_RATES, filters),
+  },
   export: {
     pdf: (filters?: AlumniFilters) => invoke<string>(IPC_CHANNELS.EXPORT.PDF, filters),
     docx: (filters?: AlumniFilters) => invoke<string>(IPC_CHANNELS.EXPORT.DOCX, filters),
     excel: (filters?: AlumniFilters) => invoke<string>(IPC_CHANNELS.EXPORT.EXCEL, filters),
     dashboardPdf: (filters?: DashboardFilters) => invoke<string>(IPC_CHANNELS.EXPORT.DASHBOARD_PDF, filters),
     dashboardDocx: (filters?: DashboardFilters) => invoke<string>(IPC_CHANNELS.EXPORT.DASHBOARD_DOCX, filters),
+    peoPdf: (filters?: PeoFilters) => invoke<string>(IPC_CHANNELS.EXPORT.PEO_PDF, filters),
+    peoDocx: (filters?: PeoFilters) => invoke<string>(IPC_CHANNELS.EXPORT.PEO_DOCX, filters),
   },
   email: {
-    send: (payload: { subject: string; body: string; recipientFilters: AlumniFilters; includeGformLink: boolean }) =>
+    send: (payload: {
+      subject: string
+      body: string
+      includeGformLink: boolean
+      recipientFilters?: AlumniFilters
+      recipients?: string[]
+      recipientVars?: Record<string, string>
+    }) =>
       invoke<{ sent: number; failed: number; errors: string[] }>(IPC_CHANNELS.EMAIL.SEND, payload),
     getHistory: () => invoke<Record<string, unknown>[]>(IPC_CHANNELS.EMAIL.GET_HISTORY),
     getReceived: () => invoke<Record<string, unknown>[]>(IPC_CHANNELS.EMAIL.GET_RECEIVED),

@@ -11,8 +11,10 @@ export function useEmailSend() {
   const send = async (payload: {
     subject: string
     body: string
-    recipientFilters: AlumniFilters
     includeGformLink: boolean
+    recipientFilters?: AlumniFilters
+    recipients?: string[]
+    recipientVars?: Record<string, string>
   }) => {
     setSending(true)
     setResult(null)

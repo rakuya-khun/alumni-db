@@ -327,25 +327,56 @@ export const alumniRepository = {
 
     const duplicates: { keepId: number; removeIds: number[] }[] = []
 
+    function tokenSet(name: string): Set<string> {
+      return new Set(nameTokens(name).split(' ').filter(Boolean))
+    }
+    function isSubset(a: Set<string>, b: Set<string>): boolean {
+      if (a.size === 0) return false
+      for (const t of a) if (!b.has(t)) return false
+      return true
+    }
+
     for (const rows of groups.values()) {
       if (rows.length < 2) continue
 
-      // Cluster by token similarity
-      const clusters = new Map<string, AlumniRow[]>()
-      for (const row of rows) {
-        const tokens = nameTokens(row.full_name)
-        if (!clusters.has(tokens)) clusters.set(tokens, [])
-        clusters.get(tokens)!.push(row)
-      }
+      // Compute token sets per row
+      const annotated = rows.map((r) => ({ row: r, tokens: tokenSet(r.full_name) }))
+      let unmatched = annotated.slice()
 
-      for (const cluster of clusters.values()) {
-        if (cluster.length < 2) continue
-        // Keep the first (lowest id), remove the rest
-        const [keep, ...rest] = cluster
-        duplicates.push({
-          keepId: keep.id,
-          removeIds: rest.map((r) => r.id),
-        })
+      while (unmatched.length > 0) {
+        // Pick keeper: largest tokenSet, tiebreak lowest id
+        let keeperIdx = 0
+        for (let i = 1; i < unmatched.length; i++) {
+          const cur = unmatched[i]
+          const best = unmatched[keeperIdx]
+          if (
+            cur.tokens.size > best.tokens.size ||
+            (cur.tokens.size === best.tokens.size && cur.row.id < best.row.id)
+          ) {
+            keeperIdx = i
+          }
+        }
+        const keeper = unmatched[keeperIdx]
+        const matched = [keeper]
+        const remaining: typeof unmatched = []
+
+        for (let i = 0; i < unmatched.length; i++) {
+          if (i === keeperIdx) continue
+          const other = unmatched[i]
+          if (isSubset(other.tokens, keeper.tokens) || isSubset(keeper.tokens, other.tokens)) {
+            matched.push(other)
+          } else {
+            remaining.push(other)
+          }
+        }
+
+        if (matched.length > 1) {
+          duplicates.push({
+            keepId: keeper.row.id,
+            removeIds: matched.slice(1).map((m) => m.row.id),
+          })
+        }
+        unmatched = remaining
       }
     }
 

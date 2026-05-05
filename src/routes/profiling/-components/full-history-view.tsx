@@ -30,7 +30,7 @@ export function FullHistoryView({ entries, diffsPerEntry }: FullHistoryViewProps
               — {formatDateTime(entry.createdAt)}
             </span>
             <span className="ml-auto text-xs text-text-secondary">
-              {entry.changedFields.length} field{entry.changedFields.length !== 1 ? 's' : ''} changed
+              {(entry.changedFields ?? []).length} field{(entry.changedFields ?? []).length !== 1 ? 's' : ''} changed
             </span>
           </div>
           <HistoryDiffViewer diffs={diffsPerEntry.get(entry.id) ?? []} />

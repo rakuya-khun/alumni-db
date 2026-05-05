@@ -31,7 +31,8 @@ export const alumniHistoryService = {
       snapshot = JSON.parse(entry.snapshot)
     } catch { /* empty */ }
     try {
-      changedFields = JSON.parse(entry.changed_fields)
+      const parsed = JSON.parse(entry.changed_fields)
+      if (Array.isArray(parsed)) changedFields = parsed
     } catch { /* empty */ }
     return { snapshot, changedFields, createdAt: entry.created_at }
   }

@@ -26,6 +26,10 @@ import { RecentActivity } from './-components/recent-activity'
 import { ProfessionalTitleTable } from './-components/professional-title-table'
 import { SpecializationTable } from './-components/specialization-table'
 import { CompetenciesLearnedTable } from './-components/competencies-learned-table'
+import { PeoCardsRow } from './-components/peo/peo-cards-row'
+import { PeoAccordion } from './-components/peo/peo-accordion'
+import { usePeo } from './-hooks/use-peo'
+import type { PeoFilters } from '../../../shared/types/peo.types'
 
 export default function DashboardPage() {
   const { fullName, role } = useAuth()
@@ -34,6 +38,14 @@ export default function DashboardPage() {
     yearFrom: undefined,
     yearTo: undefined,
   })
+  const [peoFilters, setPeoFilters] = useState<PeoFilters>({
+    programs: undefined,
+    yearFrom: undefined,
+    yearTo: undefined,
+    denominatorMode: 'total',
+    asOfYear: undefined,
+  })
+  const { error: peoError } = usePeo(peoFilters)
 
   const extraFilters = {
     programs: dashFilters.programs.length > 0 ? dashFilters.programs : undefined,
@@ -46,6 +58,9 @@ export default function DashboardPage() {
   const [exportOpen, setExportOpen] = useState(false)
   const [exporting, setExporting] = useState(false)
   const exportRef = useRef<HTMLDivElement>(null)
+  const [peoExportOpen, setPeoExportOpen] = useState(false)
+  const [peoExporting, setPeoExporting] = useState(false)
+  const peoExportRef = useRef<HTMLDivElement>(null)
   const toast = useToast()
 
   // Close dropdown on outside click
@@ -54,10 +69,19 @@ export default function DashboardPage() {
       if (exportRef.current && !exportRef.current.contains(e.target as Node)) {
         setExportOpen(false)
       }
+      if (peoExportRef.current && !peoExportRef.current.contains(e.target as Node)) {
+        setPeoExportOpen(false)
+      }
     }
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
-  }, [])
+  }, [])  // Surface PEO load errors as a non-blocking toast
+  useEffect(() => {
+    if (peoError) {
+      toast.error('PEO data failed to load', peoError)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [peoError])
 
   const handleDashboardExport = async (format: 'pdf' | 'docx') => {
     setExporting(true)
@@ -78,6 +102,23 @@ export default function DashboardPage() {
       toast.error('Export failed', err instanceof Error ? err.message : 'Unknown error')
     } finally {
       setExporting(false)
+    }
+  }
+
+  const handlePeoExport = async (format: 'pdf' | 'docx') => {
+    setPeoExporting(true)
+    setPeoExportOpen(false)
+    try {
+      if (format === 'pdf') {
+        await ipcClient.export.peoPdf(peoFilters)
+      } else {
+        await ipcClient.export.peoDocx(peoFilters)
+      }
+      toast.success('Export complete', 'PEO attainment report saved successfully')
+    } catch (err) {
+      toast.error('Export failed', err instanceof Error ? err.message : 'Unknown error')
+    } finally {
+      setPeoExporting(false)
     }
   }
 
@@ -126,6 +167,38 @@ export default function DashboardPage() {
               </div>
             )}
           </div>
+          <div ref={peoExportRef} className="relative">
+            <button
+              onClick={() => setPeoExportOpen(!peoExportOpen)}
+              disabled={peoExporting}
+              className="inline-flex h-10 items-center gap-2 rounded-lg border border-card-border bg-card px-4 text-sm font-medium text-text-primary shadow-sm hover:bg-surface-secondary disabled:opacity-50"
+            >
+              {peoExporting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
+              Export PEO
+            </button>
+            {peoExportOpen && (
+              <div className="absolute right-0 z-10 mt-1 w-52 rounded-lg border border-card-border bg-card py-1 shadow-lg">
+                <button
+                  onClick={() => handlePeoExport('pdf')}
+                  className="flex w-full items-center gap-2 px-4 py-2 text-sm text-text-primary hover:bg-surface-secondary"
+                >
+                  <FileText className="h-4 w-4 text-error" />
+                  Export as PDF
+                </button>
+                <button
+                  onClick={() => handlePeoExport('docx')}
+                  className="flex w-full items-center gap-2 px-4 py-2 text-sm text-text-primary hover:bg-surface-secondary"
+                >
+                  <FileSpreadsheet className="h-4 w-4 text-info" />
+                  Export as Word
+                </button>
+              </div>
+            )}
+          </div>
           <button
             onClick={() => refresh()}
             disabled={statsLoading}
@@ -136,6 +209,10 @@ export default function DashboardPage() {
           </button>
         </div>
       </div>
+
+      {/* PEO Section */}
+      <PeoCardsRow />
+      <PeoAccordion peoFilters={peoFilters} onPeoFiltersChange={setPeoFilters} />
 
       {/* Dashboard Filters */}
       <DashboardFilters filters={dashFilters} onChange={setDashFilters} />

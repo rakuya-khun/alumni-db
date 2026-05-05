@@ -1,7 +1,9 @@
 import * as fs from 'fs'
 import { alumniRepository, type AlumniFilters } from '../database/alumni.repository'
 import { analyticsRepository, type AnalyticsFilters } from '../database/analytics.repository'
+import { peoService } from './peo.service'
 import { logger } from '../utils/logger'
+import type { PeoFilters, PeoRate, PeoCohortRate } from '../../shared/types/peo.types'
 
 const PROGRAM_LABELS: Record<string, string> = {
   BSCE: 'Civil Engineering',
@@ -80,6 +82,51 @@ function parseDashboardFilters(filters?: Record<string, unknown>): AnalyticsFilt
     yearTo: filters?.yearTo as number | undefined,
   }
 }
+
+function parsePeoFilters(filters?: Record<string, unknown>): PeoFilters {
+  const denomRaw = filters?.denominatorMode
+  const denominatorMode =
+    denomRaw === 'employed' || denomRaw === 'total' ? denomRaw : undefined
+  return {
+    programs: filters?.programs as string[] | undefined,
+    yearFrom: filters?.yearFrom as number | undefined,
+    yearTo: filters?.yearTo as number | undefined,
+    denominatorMode,
+    asOfYear: filters?.asOfYear as number | undefined,
+  }
+}
+
+function buildPeoFilterSummary(filters: PeoFilters, asOfYear: number): string {
+  const parts: string[] = []
+  if (filters.programs && filters.programs.length > 0) {
+    parts.push('Programs: ' + filters.programs.map((p) => PROGRAM_LABELS[p] ?? p).join(', '))
+  } else {
+    parts.push('Programs: All')
+  }
+  if (filters.yearFrom || filters.yearTo) {
+    parts.push(`Years: ${filters.yearFrom ?? '—'}–${filters.yearTo ?? '—'}`)
+  } else {
+    parts.push('Years: All')
+  }
+  parts.push(`Denominator: ${filters.denominatorMode ?? 'total'}`)
+  parts.push(`As of: ${asOfYear}`)
+  return parts.join('  |  ')
+}
+
+const PEO_TITLES: Record<'peo1' | 'peo2' | 'peo3', string> = {
+  peo1: 'Professional Competence',
+  peo2: 'Ethics & Social Responsibility',
+  peo3: 'Innovation & Sustainability',
+}
+
+const COHORT_LABELS: Record<'recent' | 'mid' | 'established', string> = {
+  recent: 'Recent (0–2 yrs)',
+  mid: 'Mid (3–5 yrs)',
+  established: 'Established (6+ yrs)',
+}
+
+const PEO_METHODOLOGY =
+  "An alumnus is counted as 'attaining' a PEO when they meet the employment gate AND at least one of the listed indicators for that PEO. Aligned = employed AND job is highly/moderately related to course."
 
 function buildDashboardFilterSummary(filters: AnalyticsFilters): string {
   const parts: string[] = []
@@ -737,5 +784,296 @@ export const exportService = {
     const buffer = await Packer.toBuffer(doc)
     fs.writeFileSync(filePath, buffer)
     logger.info('export', `Dashboard DOCX exported: ${filePath}`)
-  }
+  },
+
+  async peoToPdf(filePath: string, filters?: Record<string, unknown>): Promise<void> {
+    const { jsPDF } = await import('jspdf')
+    await import('jspdf-autotable')
+
+    const pf = parsePeoFilters(filters)
+    const peo = peoService.compute(pf)
+    const outcomes = peoService.getOutcomeRates(pf)
+    const filterSummary = buildPeoFilterSummary(pf, peo.asOfYear)
+
+    const doc = new jsPDF({ orientation: 'portrait', format: 'a4' })
+    const pageWidth = doc.internal.pageSize.getWidth()
+
+    // Cover heading (unique to PEO)
+    doc.setFontSize(14)
+    doc.text('Southern Luzon State University', pageWidth / 2, 18, { align: 'center' })
+    doc.setFontSize(11)
+    doc.text('College of Engineering', pageWidth / 2, 25, { align: 'center' })
+    doc.setFontSize(16)
+    doc.setFont('helvetica', 'bold')
+    doc.text('PEO Attainment Report', pageWidth / 2, 35, { align: 'center' })
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(10)
+    doc.text(filterSummary, pageWidth / 2, 43, { align: 'center' })
+    doc.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth / 2, 49, { align: 'center' })
+
+    const autoTable = (doc as unknown as { autoTable: (opts: unknown) => void }).autoTable
+    const lastY = () =>
+      (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable?.finalY ?? 60
+
+    const noteFor = (rate: PeoRate) =>
+      rate.insufficient ? `Insufficient data (n=${rate.denominator})` : ''
+
+    // Table 1: PEO Attainment Summary
+    autoTable.call(doc, {
+      head: [['PEO', 'Title', 'Passing', 'Denominator', 'Attainment %', 'Notes']],
+      body: [
+        ['PEO 1', PEO_TITLES.peo1, String(peo.peo1.passing), String(peo.peo1.denominator), `${peo.peo1.rate}%`, noteFor(peo.peo1)],
+        ['PEO 2', PEO_TITLES.peo2, String(peo.peo2.passing), String(peo.peo2.denominator), `${peo.peo2.rate}%`, noteFor(peo.peo2)],
+        ['PEO 3', PEO_TITLES.peo3, String(peo.peo3.passing), String(peo.peo3.denominator), `${peo.peo3.rate}%`, noteFor(peo.peo3)],
+      ],
+      startY: 56,
+      styles: { fontSize: 10, cellPadding: 4 },
+      headStyles: { fillColor: [155, 35, 53] },
+    })
+
+    function addSectionHeading(text: string, y: number): number {
+      if (y > doc.internal.pageSize.getHeight() - 50) {
+        doc.addPage()
+        y = 20
+      }
+      doc.setFontSize(13)
+      doc.setFont('helvetica', 'bold')
+      doc.text(text, 14, y)
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(10)
+      return y + 6
+    }
+
+    function addIndicatorTable(rate: PeoRate, startY: number): number {
+      if (startY > doc.internal.pageSize.getHeight() - 60) {
+        doc.addPage()
+        startY = 20
+      }
+      const rows = Object.values(rate.indicators).map((ind) => [
+        ind.label,
+        String(ind.count),
+        String(rate.denominator),
+        rate.denominator > 0
+          ? `${Math.round((ind.count / rate.denominator) * 10000) / 100}%`
+          : '0%',
+      ])
+      autoTable.call(doc, {
+        head: [['Indicator', 'Count', 'Denominator', '%']],
+        body: rows,
+        startY,
+        styles: { fontSize: 9, cellPadding: 3 },
+        headStyles: { fillColor: [155, 35, 53] },
+      })
+      return lastY() + 8
+    }
+
+    let curY = lastY() + 12
+
+    curY = addSectionHeading(`PEO 1 — ${PEO_TITLES.peo1} — Indicator Breakdown`, curY)
+    curY = addIndicatorTable(peo.peo1, curY)
+
+    curY = addSectionHeading(`PEO 2 — ${PEO_TITLES.peo2} — Indicator Breakdown`, curY)
+    curY = addIndicatorTable(peo.peo2, curY)
+
+    curY = addSectionHeading(`PEO 3 — ${PEO_TITLES.peo3} — Indicator Breakdown`, curY)
+    curY = addIndicatorTable(peo.peo3, curY)
+
+    // Outcomes — Cohort Alignment
+    curY = addSectionHeading('Outcomes — Cohort Alignment', curY)
+    if (curY > doc.internal.pageSize.getHeight() - 60) {
+      doc.addPage()
+      curY = 20
+    }
+    const cohortRow = (c: PeoCohortRate) => [
+      COHORT_LABELS[c.cohort],
+      String(c.total),
+      String(c.aligned),
+      `${c.rate}%`,
+      c.insufficient ? `Insufficient data (n=${c.total})` : '',
+    ]
+    autoTable.call(doc, {
+      head: [['Cohort', 'Total', 'Aligned', '%', 'Notes']],
+      body: [
+        cohortRow(outcomes.cohorts.recent),
+        cohortRow(outcomes.cohorts.mid),
+        cohortRow(outcomes.cohorts.established),
+        [
+          'Overall',
+          String(outcomes.overallTotal),
+          String(outcomes.overallAligned),
+          `${outcomes.overallRate}%`,
+          '',
+        ],
+      ],
+      startY: curY,
+      styles: { fontSize: 10, cellPadding: 4 },
+      headStyles: { fillColor: [155, 35, 53] },
+    })
+
+    // Methodology footer
+    curY = lastY() + 12
+    if (curY > doc.internal.pageSize.getHeight() - 30) {
+      doc.addPage()
+      curY = 20
+    }
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'italic')
+    const wrapped = doc.splitTextToSize(`Methodology: ${PEO_METHODOLOGY}`, pageWidth - 28)
+    doc.text(wrapped, 14, curY)
+    doc.setFont('helvetica', 'normal')
+
+    const buffer = doc.output('arraybuffer')
+    fs.writeFileSync(filePath, Buffer.from(buffer))
+    logger.info('export', `PEO PDF exported: ${filePath}`)
+  },
+
+  async peoToDocx(filePath: string, filters?: Record<string, unknown>): Promise<void> {
+    const docx = await import('docx')
+    const {
+      Document, Paragraph, Table, TableRow, TableCell,
+      TextRun, HeadingLevel, WidthType, Packer, AlignmentType,
+      BorderStyle,
+    } = docx
+
+    const pf = parsePeoFilters(filters)
+    const peo = peoService.compute(pf)
+    const outcomes = peoService.getOutcomeRates(pf)
+    const filterSummary = buildPeoFilterSummary(pf, peo.asOfYear)
+
+    const accentColor = '9B2335'
+
+    function headerCell(text: string, width = 25) {
+      return new TableCell({
+        children: [new Paragraph({ children: [new TextRun({ text, bold: true, color: 'FFFFFF', font: 'Calibri' })] })],
+        shading: { type: docx.ShadingType.SOLID, color: accentColor },
+        width: { size: width, type: WidthType.PERCENTAGE },
+      })
+    }
+
+    function dataCell(text: string, width = 25) {
+      return new TableCell({
+        children: [new Paragraph({ children: [new TextRun({ text, font: 'Calibri' })] })],
+        width: { size: width, type: WidthType.PERCENTAGE },
+        borders: {
+          top: { style: BorderStyle.SINGLE, size: 1, color: 'CCCCCC' },
+          bottom: { style: BorderStyle.SINGLE, size: 1, color: 'CCCCCC' },
+          left: { style: BorderStyle.SINGLE, size: 1, color: 'CCCCCC' },
+          right: { style: BorderStyle.SINGLE, size: 1, color: 'CCCCCC' },
+        },
+      })
+    }
+
+    const noteFor = (rate: PeoRate) =>
+      rate.insufficient ? `Insufficient data (n=${rate.denominator})` : ''
+
+    // Summary table
+    const summaryRows = [
+      new TableRow({ tableHeader: true, children: [
+        headerCell('PEO', 10), headerCell('Title', 30), headerCell('Passing', 12),
+        headerCell('Denominator', 14), headerCell('Attainment %', 14), headerCell('Notes', 20),
+      ]}),
+      new TableRow({ children: [
+        dataCell('PEO 1', 10), dataCell(PEO_TITLES.peo1, 30), dataCell(String(peo.peo1.passing), 12),
+        dataCell(String(peo.peo1.denominator), 14), dataCell(`${peo.peo1.rate}%`, 14), dataCell(noteFor(peo.peo1), 20),
+      ]}),
+      new TableRow({ children: [
+        dataCell('PEO 2', 10), dataCell(PEO_TITLES.peo2, 30), dataCell(String(peo.peo2.passing), 12),
+        dataCell(String(peo.peo2.denominator), 14), dataCell(`${peo.peo2.rate}%`, 14), dataCell(noteFor(peo.peo2), 20),
+      ]}),
+      new TableRow({ children: [
+        dataCell('PEO 3', 10), dataCell(PEO_TITLES.peo3, 30), dataCell(String(peo.peo3.passing), 12),
+        dataCell(String(peo.peo3.denominator), 14), dataCell(`${peo.peo3.rate}%`, 14), dataCell(noteFor(peo.peo3), 20),
+      ]}),
+    ]
+
+    function indicatorTable(rate: PeoRate) {
+      const rows = [
+        new TableRow({ tableHeader: true, children: [
+          headerCell('Indicator', 50), headerCell('Count', 15),
+          headerCell('Denominator', 20), headerCell('%', 15),
+        ]}),
+        ...Object.values(rate.indicators).map((ind) =>
+          new TableRow({ children: [
+            dataCell(ind.label, 50),
+            dataCell(String(ind.count), 15),
+            dataCell(String(rate.denominator), 20),
+            dataCell(rate.denominator > 0
+              ? `${Math.round((ind.count / rate.denominator) * 10000) / 100}%`
+              : '0%', 15),
+          ]})
+        ),
+      ]
+      return new Table({ rows, width: { size: 100, type: WidthType.PERCENTAGE } })
+    }
+
+    const cohortRow = (c: PeoCohortRate) => new TableRow({ children: [
+      dataCell(COHORT_LABELS[c.cohort], 30),
+      dataCell(String(c.total), 15),
+      dataCell(String(c.aligned), 15),
+      dataCell(`${c.rate}%`, 15),
+      dataCell(c.insufficient ? `Insufficient data (n=${c.total})` : '', 25),
+    ]})
+
+    const cohortRows = [
+      new TableRow({ tableHeader: true, children: [
+        headerCell('Cohort', 30), headerCell('Total', 15),
+        headerCell('Aligned', 15), headerCell('%', 15), headerCell('Notes', 25),
+      ]}),
+      cohortRow(outcomes.cohorts.recent),
+      cohortRow(outcomes.cohorts.mid),
+      cohortRow(outcomes.cohorts.established),
+      new TableRow({ children: [
+        dataCell('Overall', 30),
+        dataCell(String(outcomes.overallTotal), 15),
+        dataCell(String(outcomes.overallAligned), 15),
+        dataCell(`${outcomes.overallRate}%`, 15),
+        dataCell('', 25),
+      ]}),
+    ]
+
+    const children: (typeof Paragraph.prototype | typeof Table.prototype)[] = [
+      new Paragraph({ text: 'Southern Luzon State University', heading: HeadingLevel.HEADING_2, alignment: AlignmentType.CENTER }),
+      new Paragraph({ text: 'College of Engineering', alignment: AlignmentType.CENTER }),
+      new Paragraph({ text: 'PEO Attainment Report', heading: HeadingLevel.HEADING_1, alignment: AlignmentType.CENTER, spacing: { before: 200 } }),
+      new Paragraph({ text: filterSummary, alignment: AlignmentType.CENTER }),
+      new Paragraph({ text: `Generated: ${new Date().toLocaleDateString()}`, alignment: AlignmentType.CENTER, spacing: { after: 400 } }),
+
+      new Paragraph({ text: 'PEO Attainment Summary', heading: HeadingLevel.HEADING_2, spacing: { before: 200 } }),
+      new Table({ rows: summaryRows, width: { size: 100, type: WidthType.PERCENTAGE } }),
+
+      new Paragraph({ text: `PEO 1 — ${PEO_TITLES.peo1} — Indicator Breakdown`, heading: HeadingLevel.HEADING_3, spacing: { before: 400 } }),
+      indicatorTable(peo.peo1),
+
+      new Paragraph({ text: `PEO 2 — ${PEO_TITLES.peo2} — Indicator Breakdown`, heading: HeadingLevel.HEADING_3, spacing: { before: 400 } }),
+      indicatorTable(peo.peo2),
+
+      new Paragraph({ text: `PEO 3 — ${PEO_TITLES.peo3} — Indicator Breakdown`, heading: HeadingLevel.HEADING_3, spacing: { before: 400 } }),
+      indicatorTable(peo.peo3),
+
+      new Paragraph({ text: 'Outcomes — Cohort Alignment', heading: HeadingLevel.HEADING_2, spacing: { before: 400 } }),
+      new Table({ rows: cohortRows, width: { size: 100, type: WidthType.PERCENTAGE } }),
+
+      new Paragraph({
+        spacing: { before: 400 },
+        children: [new TextRun({ text: `Methodology: ${PEO_METHODOLOGY}`, italics: true, font: 'Calibri', size: 18 })],
+      }),
+    ]
+
+    const doc = new Document({
+      sections: [{
+        properties: {
+          page: {
+            size: { width: 12240, height: 15840 },
+            margin: { top: 1080, bottom: 1080, left: 1080, right: 1080 },
+          },
+        },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        children: children as any[],
+      }],
+    })
+
+    const buffer = await Packer.toBuffer(doc)
+    fs.writeFileSync(filePath, buffer)
+    logger.info('export', `PEO DOCX exported: ${filePath}`)
+  },
 }

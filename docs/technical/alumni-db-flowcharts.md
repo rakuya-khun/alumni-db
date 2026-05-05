@@ -179,7 +179,11 @@ flowchart TD
     H --> J["% Employed Alumni"]
     H --> K["% Field-Related Jobs"]
     H --> L["% Supervisory Roles"]
-    I & J & K & L --> M{{"Load Frequency & Weighted Mean Tables"}}
+    H --> PEOAGG{{"Compute PEO Attainment"}}
+    PEOAGG --> PEO1["PEO 1 — Professional Competence"]
+    PEOAGG --> PEO2["PEO 2 — Ethics & Social Responsibility"]
+    PEOAGG --> PEO3["PEO 3 — Innovation & Sustainability"]
+    I & J & K & L & PEO1 & PEO2 & PEO3 --> M{{"Load Frequency & Weighted Mean Tables"}}
     M --> N["Curriculum Relevance"]
     M --> O["Competencies (9 items)"]
     M --> P["Employment Status"]
@@ -206,6 +210,7 @@ flowchart TD
     style V fill:#8b5cf6,color:#fff
     style AA fill:#8b5cf6,color:#fff
     style B fill:#f59e0b,color:#fff
+    style PEOAGG fill:#9B2335,color:#fff
     linkStyle 2 stroke:#ef4444
     linkStyle 3 stroke:#10b981
 ```
@@ -214,6 +219,7 @@ flowchart TD
 
 - **Role-Based Filter Applied First:** A Chairperson sees only their own program's statistics.
 - **Stat Cards (KPIs):** Total Responses, per-program counts, % Board Passers, % Employed, % Field-Related, % Supervisory.
+- **PEO Attainment Cards & Accordion:** Three additional cards display Program Educational Objectives attainment % (PEO 1 Professional Competence, PEO 2 Ethics & Social Responsibility, PEO 3 Innovation & Sustainability) plus a fourth Outcomes (Field-Aligned Employment) card. Clicking any card opens an accordion with per-indicator breakdowns, "How calculated" methodology, "Data fields used", and a graduation-cohort outcome view (recent / mid / established). Computed by `peoService` via the dedicated `peo.repository.ts` SQL constants — separate from the basic KPI percentages.
 - **Survey Tables:** Frequency distribution and weighted mean (for Likert-scale data).
 - **Dashboard Export:** After viewing charts/tables, user can export the entire dashboard view as PDF or DOCX via the export dropdown button. Filters (program, year range) are passed to the export service.
 

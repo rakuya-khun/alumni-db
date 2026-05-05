@@ -1,6 +1,6 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Eye, EyeOff } from 'lucide-react'
 import { loginSchema, type LoginFormData } from '../-schemas/login.schema'
 import { useState, useEffect } from 'react'
 
@@ -14,6 +14,7 @@ interface LoginFormProps {
 
 export function LoginForm({ onSubmit, loading, disabled }: LoginFormProps) {
   const [rememberMe, setRememberMe] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   const {
     register,
@@ -71,15 +72,27 @@ export function LoginForm({ onSubmit, loading, disabled }: LoginFormProps) {
         <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-text-primary">
           Password
         </label>
-        <input
-          id="password"
-          type="password"
-          autoComplete="current-password"
-          disabled={disabled}
-          {...register('password')}
-          className="h-11 w-full rounded-lg border border-card-border bg-surface-secondary px-4 text-sm text-text-primary placeholder:text-text-muted focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
-          placeholder="Enter your password"
-        />
+        <div className="relative">
+          <input
+            id="password"
+            type={showPassword ? 'text' : 'password'}
+            autoComplete="current-password"
+            disabled={disabled}
+            {...register('password')}
+            className="h-11 w-full rounded-lg border border-card-border bg-surface-secondary pl-4 pr-11 text-sm text-text-primary placeholder:text-text-muted focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
+            placeholder="Enter your password"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((s) => !s)}
+            disabled={disabled}
+            aria-label={showPassword ? 'Hide password' : 'Show password'}
+            aria-pressed={showPassword}
+            className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex h-8 w-8 items-center justify-center rounded-md text-text-secondary hover:text-text-primary hover:bg-surface-tertiary disabled:opacity-50"
+          >
+            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        </div>
         {errors.password && (
           <p className="mt-1 text-xs text-error">{errors.password.message}</p>
         )}

@@ -4,12 +4,23 @@ import { logger } from '../utils/logger'
 import { settingsService } from './settings.service'
 import { createTransport } from '../integrations/smtp/transport'
 
+function substituteVars(template: string, vars: Record<string, string> = {}): string {
+  return template.replace(/\{\{(\w+)\}\}/g, (_match, key: string) => {
+    const v = vars[key]
+    return v !== undefined && v !== null ? String(v) : ''
+  })
+}
+
+function toHtml(text: string): string {
+  // Preserve line breaks when sending as HTML
+  return text.replace(/\r\n|\r|\n/g, '<br>')
+}
+
 export const emailService = {
   async send(payload: {
     subject: string
     body: string
-    recipients: string[]
-    gformLink?: string
+    recipients: Array<{ email: string; vars?: Record<string, string>; gformLink?: string }>
   }): Promise<{ sent: number; failed: number; errors: string[] }> {
     const smtpConfig = settingsService.getSmtpConfig()
     if (!smtpConfig.host || !smtpConfig.port || !smtpConfig.user || !smtpConfig.pass) {
@@ -19,18 +30,14 @@ export const emailService = {
     const transport = createTransport(smtpConfig as { host: string; port: number; user: string; pass: string })
     const from = smtpConfig.from || smtpConfig.user
 
-    // Append Google Form link if provided
-    let body = payload.body
-    if (payload.gformLink) {
-      body += `\n\n---\nPlease complete the alumni survey: ${payload.gformLink}`
-    }
+    const emails = payload.recipients.map((r) => r.email)
 
-    // Log the email before sending
+    // Log the email before sending (store the un-substituted template body as composed)
     const id = emailHistoryRepository.create({
       subject: payload.subject,
-      body,
-      recipients: JSON.stringify(payload.recipients),
-      recipientCount: payload.recipients.length,
+      body: payload.body,
+      recipients: JSON.stringify(emails),
+      recipientCount: emails.length,
       status: 'sending'
     })
     safeSave()
@@ -40,18 +47,26 @@ export const emailService = {
     const errors: string[] = []
 
     for (const recipient of payload.recipients) {
+      const vars = recipient.vars || {}
+      const personalSubject = substituteVars(payload.subject, vars)
+      let personalBody = substituteVars(payload.body, vars)
+      const link = recipient.gformLink
+      if (link) {
+        personalBody += `\n\n---\nPlease complete the alumni survey: ${link}`
+      }
+
       try {
         await transport.sendMail({
           from,
-          to: recipient,
-          subject: payload.subject,
-          html: body
+          to: recipient.email,
+          subject: personalSubject,
+          html: toHtml(personalBody)
         })
         sent++
       } catch (error) {
         failed++
-        errors.push(`${recipient}: ${(error as Error).message}`)
-        logger.warn('email', `Failed to send to ${recipient}`, {
+        errors.push(`${recipient.email}: ${(error as Error).message}`)
+        logger.warn('email', `Failed to send to ${recipient.email}`, {
           error: (error as Error).message
         })
       }
@@ -61,11 +76,11 @@ export const emailService = {
     emailHistoryRepository.updateStatus(
       id,
       status,
-      failed > 0 ? `${failed} of ${payload.recipients.length} failed` : undefined
+      failed > 0 ? `${failed} of ${emails.length} failed` : undefined
     )
     safeSave()
 
-    logger.info('email', `Email sent: ${sent}/${payload.recipients.length}`, {
+    logger.info('email', `Email sent: ${sent}/${emails.length}`, {
       subject: payload.subject
     })
 

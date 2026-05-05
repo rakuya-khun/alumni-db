@@ -33,12 +33,18 @@ export const IPC_CHANNELS = {
     GET_HISTORY: 'profiling:getHistory',
     GET_SNAPSHOT: 'profiling:getSnapshot'
   },
+  PEO: {
+    COMPUTE: 'peo:compute',
+    GET_OUTCOME_RATES: 'peo:getOutcomeRates'
+  },
   EXPORT: {
     PDF: 'export:pdf',
     DOCX: 'export:docx',
     EXCEL: 'export:excel',
     DASHBOARD_PDF: 'export:dashboardPdf',
-    DASHBOARD_DOCX: 'export:dashboardDocx'
+    DASHBOARD_DOCX: 'export:dashboardDocx',
+    PEO_PDF: 'export:peoPdf',
+    PEO_DOCX: 'export:peoDocx'
   },
   EMAIL: {
     SEND: 'email:send',

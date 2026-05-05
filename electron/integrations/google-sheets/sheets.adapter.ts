@@ -1,5 +1,5 @@
 import { createSheetsClient } from './client'
-import { resolveHeaderColumn } from './mapper'
+import { resolveHeaderColumn, normalizeProgram } from './mapper'
 import { logger } from '../../utils/logger'
 import { settingsService } from '../../services/settings.service'
 
@@ -91,12 +91,20 @@ export const sheetsAdapter = {
       return
     }
 
+    const targetName = fullName.trim().toLowerCase()
+    const targetProgram = normalizeProgram(program) ?? program
+    const targetYear = String(yearGraduated).trim()
+
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i]
+      const rowProgramNorm = normalizeProgram(row[progIdx])
+      const programMatches = rowProgramNorm !== null
+        ? rowProgramNorm === targetProgram
+        : String(row[progIdx] ?? '') === program
       if (
-        row[nameIdx] === fullName &&
-        row[progIdx] === program &&
-        String(row[yearIdx]) === String(yearGraduated)
+        String(row[nameIdx] ?? '').trim().toLowerCase() === targetName &&
+        programMatches &&
+        String(row[yearIdx] ?? '').trim() === targetYear
       ) {
         await this.updateRow(i + 1, rowData, sheetName)
         return

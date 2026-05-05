@@ -228,6 +228,118 @@ for (const r of routeDirs) {
   check(`route: ${idx}`, fileNotEmpty(idx), `Route page ${idx} is empty — implement it`)
 }
 
+// ─── 9. PEO wiring ───
+console.log('\n🔍 9. PEO wiring\n')
+
+const peoFiles = [
+  'shared/types/peo.types.ts',
+  'shared/schemas/peo.schema.ts',
+  'electron/database/peo.repository.ts',
+  'electron/services/peo.service.ts',
+  'electron/ipc/peo.ipc.ts',
+  'src/stores/peo.store.ts',
+  'src/routes/dashboard/-hooks/use-peo.ts',
+  'src/routes/dashboard/-components/peo/peo-cards-row.tsx',
+  'src/routes/dashboard/-components/peo/peo-accordion.tsx',
+  'src/routes/dashboard/-components/peo/peo-filters.tsx',
+  'src/routes/dashboard/-components/peo/peo-tabs.tsx',
+  'src/routes/dashboard/-components/peo/peo-tab-content.tsx',
+  'src/routes/dashboard/-components/peo/peo-stat-card.tsx',
+  'src/routes/dashboard/-components/peo/peo-indicator-row.tsx',
+  'src/routes/dashboard/-components/peo/cohort-card.tsx',
+  'src/routes/dashboard/-components/peo/data-fields-used.tsx',
+  'src/routes/dashboard/-components/peo/processing-logic.tsx',
+  'src/routes/dashboard/-components/peo/insufficient-data-badge.tsx',
+]
+for (const f of peoFiles) {
+  check(`peo: ${f}`, fileNotEmpty(f), `PEO file ${f} missing or empty`)
+}
+
+check(
+  'ipc-channels has PEO group',
+  fileContains('shared/ipc-channels.ts', 'PEO:') &&
+    fileContains('shared/ipc-channels.ts', "'peo:compute'") &&
+    fileContains('shared/ipc-channels.ts', "'peo:getOutcomeRates'"),
+  'shared/ipc-channels.ts must declare PEO.COMPUTE and PEO.GET_OUTCOME_RATES'
+)
+
+check(
+  'preload allowlist includes PEO channels',
+  fileContains('electron/preload.ts', "'peo:compute'") &&
+    fileContains('electron/preload.ts', "'peo:getOutcomeRates'"),
+  'electron/preload.ts ALLOWED_CHANNELS must include peo:compute and peo:getOutcomeRates'
+)
+
+check(
+  'preload allowlist includes PEO export channels',
+  fileContains('electron/preload.ts', "'export:peoPdf'") &&
+    fileContains('electron/preload.ts', "'export:peoDocx'"),
+  'electron/preload.ts ALLOWED_CHANNELS must include export:peoPdf and export:peoDocx'
+)
+
+check(
+  'ipc index registers PEO handlers',
+  fileContains('electron/ipc/index.ts', 'registerPeoHandlers'),
+  'electron/ipc/index.ts must call registerPeoHandlers()'
+)
+
+check(
+  'ipc-client exposes peo namespace',
+  fileContains('src/data/ipc-client.ts', 'peo:') &&
+    fileContains('src/data/ipc-client.ts', 'compute') &&
+    fileContains('src/data/ipc-client.ts', 'getOutcomeRates'),
+  'src/data/ipc-client.ts must expose peo.compute and peo.getOutcomeRates'
+)
+
+check(
+  'ipc-client exposes peo export methods',
+  fileContains('src/data/ipc-client.ts', 'peoPdf') &&
+    fileContains('src/data/ipc-client.ts', 'peoDocx'),
+  'src/data/ipc-client.ts must expose export.peoPdf and export.peoDocx'
+)
+
+check(
+  'export service has PEO methods',
+  fileContains('electron/services/export.service.ts', 'peoToPdf') &&
+    fileContains('electron/services/export.service.ts', 'peoToDocx'),
+  'electron/services/export.service.ts must implement peoToPdf and peoToDocx'
+)
+
+check(
+  'export ipc registers PEO handlers',
+  fileContains('electron/ipc/export.ipc.ts', 'PEO_PDF') &&
+    fileContains('electron/ipc/export.ipc.ts', 'PEO_DOCX'),
+  'electron/ipc/export.ipc.ts must register PEO_PDF and PEO_DOCX handlers'
+)
+
+check(
+  'dashboard page integrates PEO',
+  fileContains('src/routes/dashboard/index.tsx', 'PeoCardsRow') &&
+    fileContains('src/routes/dashboard/index.tsx', 'PeoAccordion'),
+  'src/routes/dashboard/index.tsx must render PeoCardsRow and PeoAccordion'
+)
+
+check(
+  'reports page has PEO export cards',
+  fileContains('src/routes/reports/index.tsx', 'peo-pdf') &&
+    fileContains('src/routes/reports/index.tsx', 'peo-docx'),
+  'src/routes/reports/index.tsx must include peo-pdf and peo-docx export cards'
+)
+
+check(
+  'use-export hook handles peo formats',
+  fileContains('src/routes/reports/-hooks/use-export.ts', "'peo-pdf'") &&
+    fileContains('src/routes/reports/-hooks/use-export.ts', "'peo-docx'"),
+  'src/routes/reports/-hooks/use-export.ts ExportFormat union must include peo-pdf and peo-docx'
+)
+
+check(
+  'preload PEO and export PEO channels documented',
+  fileContains('shared/ipc-channels.ts', 'PEO_PDF') &&
+    fileContains('shared/ipc-channels.ts', 'PEO_DOCX'),
+  'shared/ipc-channels.ts EXPORT group must declare PEO_PDF and PEO_DOCX'
+)
+
 // ─── 7. Build output check ───
 console.log('\n🔍 7. Build output (run pnpm build first)\n')
 

@@ -6,7 +6,16 @@ import {
   getDefaultSheetsKey,
   DEFAULT_TAB_CE,
   DEFAULT_TAB_CPE,
-  DEFAULT_TAB_EE
+  DEFAULT_TAB_EE,
+  DEFAULT_SMTP_HOST,
+  DEFAULT_SMTP_PORT,
+  DEFAULT_SMTP_USER,
+  DEFAULT_SMTP_PASS,
+  DEFAULT_SMTP_FROM,
+  DEFAULT_SMTP_TLS,
+  DEFAULT_GFORM_URL_CE,
+  DEFAULT_GFORM_URL_CPE,
+  DEFAULT_GFORM_URL_EE
 } from '../config/constants'
 import { encryptValue } from '../utils/crypto'
 
@@ -183,12 +192,33 @@ export function insertDefaults(db: Database): void {
     [SETTINGS_KEYS.SHEETS_KEY]: encryptValue(getDefaultSheetsKey()),
     [SETTINGS_KEYS.SHEETS_TAB_CE]: DEFAULT_TAB_CE,
     [SETTINGS_KEYS.SHEETS_TAB_CPE]: DEFAULT_TAB_CPE,
-    [SETTINGS_KEYS.SHEETS_TAB_EE]: DEFAULT_TAB_EE
+    [SETTINGS_KEYS.SHEETS_TAB_EE]: DEFAULT_TAB_EE,
+    [SETTINGS_KEYS.SMTP_HOST]: DEFAULT_SMTP_HOST,
+    [SETTINGS_KEYS.SMTP_PORT]: DEFAULT_SMTP_PORT,
+    [SETTINGS_KEYS.SMTP_USER]: DEFAULT_SMTP_USER,
+    [SETTINGS_KEYS.SMTP_PASS]: encryptValue(DEFAULT_SMTP_PASS),
+    [SETTINGS_KEYS.SMTP_FROM]: DEFAULT_SMTP_FROM,
+    [SETTINGS_KEYS.SMTP_TLS]: DEFAULT_SMTP_TLS,
+    [SETTINGS_KEYS.GFORM_URL_CE]: DEFAULT_GFORM_URL_CE,
+    [SETTINGS_KEYS.GFORM_URL_CPE]: DEFAULT_GFORM_URL_CPE,
+    [SETTINGS_KEYS.GFORM_URL_EE]: DEFAULT_GFORM_URL_EE
   }
   for (const [key, value] of Object.entries(defaults)) {
     db.run(
       'INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)',
       [key, value]
+    )
+  }
+  // Backfill empty/null Google Form URL values (for installs that pre-date these defaults)
+  const gformBackfills: Array<[string, string]> = [
+    [SETTINGS_KEYS.GFORM_URL_CE, DEFAULT_GFORM_URL_CE],
+    [SETTINGS_KEYS.GFORM_URL_CPE, DEFAULT_GFORM_URL_CPE],
+    [SETTINGS_KEYS.GFORM_URL_EE, DEFAULT_GFORM_URL_EE]
+  ]
+  for (const [key, value] of gformBackfills) {
+    db.run(
+      `UPDATE settings SET value = ? WHERE key = ? AND (value IS NULL OR value = '')`,
+      [value, key]
     )
   }
   logger.info('schema', 'Default settings seeded')

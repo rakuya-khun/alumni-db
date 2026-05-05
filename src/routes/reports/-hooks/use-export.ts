@@ -2,8 +2,9 @@ import { useState } from 'react'
 import { ipcClient } from '@/data/ipc-client'
 import { useToast } from '@/hooks/use-toast'
 import type { AlumniFilters } from '../../../../shared/types/alumni.types'
+import type { PeoFilters } from '../../../../shared/types/peo.types'
 
-type ExportFormat = 'pdf' | 'docx' | 'excel'
+type ExportFormat = 'pdf' | 'docx' | 'excel' | 'peo-pdf' | 'peo-docx'
 
 export function useExport() {
   const toast = useToast()
@@ -14,7 +15,14 @@ export function useExport() {
     setExporting(true)
     setLastPath(null)
     try {
-      const path = await ipcClient.export[format](filters)
+      let path: string
+      if (format === 'peo-pdf') {
+        path = await ipcClient.export.peoPdf(filters as PeoFilters)
+      } else if (format === 'peo-docx') {
+        path = await ipcClient.export.peoDocx(filters as PeoFilters)
+      } else {
+        path = await ipcClient.export[format](filters)
+      }
       setLastPath(path)
       toast.success('Export complete', `File saved successfully`)
     } catch (err) {

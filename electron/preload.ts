@@ -14,9 +14,12 @@ const ALLOWED_CHANNELS = [
   'analytics:getDashboard', 'analytics:getSurveyData', 'analytics:getWeightedMeans',
   // Profiling
   'profiling:getProfile', 'profiling:getHistory', 'profiling:getSnapshot',
+  // PEO
+  'peo:compute', 'peo:getOutcomeRates',
   // Export
   'export:pdf', 'export:docx', 'export:excel',
   'export:dashboardPdf', 'export:dashboardDocx',
+  'export:peoPdf', 'export:peoDocx',
   // Email
   'email:send', 'email:getHistory', 'email:getReceived', 'email:testConnection',
   // Sync

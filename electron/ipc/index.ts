@@ -2,6 +2,7 @@ import { registerAuthHandlers } from './auth.ipc'
 import { registerAlumniHandlers } from './alumni.ipc'
 import { registerAnalyticsHandlers } from './analytics.ipc'
 import { registerProfilingHandlers } from './profiling.ipc'
+import { registerPeoHandlers } from './peo.ipc'
 import { registerExportHandlers } from './export.ipc'
 import { registerEmailHandlers } from './email.ipc'
 import { registerSyncHandlers } from './sync.ipc'
@@ -18,6 +19,7 @@ export function registerIpcHandlers(): void {
   registerAlumniHandlers()
   registerAnalyticsHandlers()
   registerProfilingHandlers()
+  registerPeoHandlers()
   registerExportHandlers()
   registerEmailHandlers()
   registerSyncHandlers()

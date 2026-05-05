@@ -81,6 +81,19 @@ export const DEFAULT_TAB_CE = 'CE'
 export const DEFAULT_TAB_CPE = 'CPE'
 export const DEFAULT_TAB_EE = 'EE'
 
+// SMTP
+export const DEFAULT_SMTP_HOST = 'smtp.gmail.com'
+export const DEFAULT_SMTP_PORT = '587'
+export const DEFAULT_SMTP_USER = 'cenalumni.est2026@gmail.com'
+export const DEFAULT_SMTP_PASS = 'onbonrqtjncxrive'
+export const DEFAULT_SMTP_FROM = 'cenalumni.est2026@gmail.com'
+export const DEFAULT_SMTP_TLS = 'true'
+
+// Google Forms (per-program survey URLs)
+export const DEFAULT_GFORM_URL_CE = 'https://forms.gle/hDqyFGkhd2eNNoXz8'
+export const DEFAULT_GFORM_URL_CPE = 'https://forms.gle/hTmPpxMJiQBpsP868'
+export const DEFAULT_GFORM_URL_EE = 'https://forms.gle/g14o7JZUG9vfCC9o7'
+
 // Logger
 export const LOG_FILENAME = 'app.log'
 export const LOG_MAX_SIZE_BYTES = 5 * 1024 * 1024 // 5 MB

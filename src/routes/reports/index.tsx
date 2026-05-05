@@ -1,4 +1,4 @@
-import { FileText, FileSpreadsheet, FileType, Printer } from 'lucide-react'
+import { FileText, FileSpreadsheet, FileType, Printer, Award } from 'lucide-react'
 import { ExportCard } from './-components/export-card'
 import { ExportFilterForm } from './-components/export-filter-form'
 import { ExportProgress } from './-components/export-progress'
@@ -43,6 +43,29 @@ export default function ReportsPage() {
             onClick={() => generate(f.id, { ...filters })}
           />
         ))}
+      </div>
+
+      <div className="space-y-3">
+        <h2 className="text-lg font-semibold text-text-primary">PEO Attainment Reports</h2>
+        <p className="text-sm text-text-secondary">
+          Generate Program Educational Objectives attainment reports — separate from alumni reports.
+        </p>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <ExportCard
+            title="PEO Attainment Report (PDF)"
+            description="PEO 1/2/3 attainment summary, indicator breakdown, and cohort outcomes"
+            icon={Award}
+            disabled={exporting}
+            onClick={() => generate('peo-pdf', { ...filters })}
+          />
+          <ExportCard
+            title="PEO Attainment Report (Word)"
+            description="Editable PEO attainment report with summary, indicators, and cohort outcomes"
+            icon={Award}
+            disabled={exporting}
+            onClick={() => generate('peo-docx', { ...filters })}
+          />
+        </div>
       </div>
 
       <div className="rounded-xl border border-card-border bg-card p-6 shadow-sm">

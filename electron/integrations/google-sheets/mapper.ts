@@ -346,7 +346,7 @@ const PROGRAM_NORM: [RegExp, string][] = [
   [/^EE$/i, 'BSEE'],
 ]
 
-function normalizeProgram(raw: unknown): string | null {
+export function normalizeProgram(raw: unknown): string | null {
   if (!raw) return null
   const s = String(raw).trim()
   if (!s) return null
